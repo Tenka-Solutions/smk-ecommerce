@@ -8,6 +8,7 @@ import { useCartStore } from "@/lib/cart-store";
 
 export default function CartPage() {
   const items = useCartStore((store) => store.items);
+  const hasHydrated = useCartStore((store) => store.hasHydrated);
 
   return (
     <div className="page-shell py-10">
@@ -19,7 +20,11 @@ export default function CartPage() {
         </p>
       </div>
       <div className="mt-8">
-        {items.length ? (
+        {!hasHydrated ? (
+          <div className="panel-card rounded-[2rem] p-6 text-sm text-[var(--color-muted)]">
+            Cargando carrito...
+          </div>
+        ) : items.length ? (
           <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
               {items.map((item) => (

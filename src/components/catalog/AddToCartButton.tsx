@@ -1,29 +1,60 @@
 "use client";
 
-import { useTransition } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCartStore } from "@/lib/cart-store";
 import { CatalogProduct } from "@/modules/catalog/types";
 
 export function AddToCartButton({ product }: { product: CatalogProduct }) {
-  const addItem = useCartStore((store) => store.addItem);
-  const [isPending, startTransition] = useTransition();
+  const [isAdding, setIsAdding] = useState(false);
+  const lastInteractionRef = useRef(0);
+
+  function handleAdd(
+    event?:
+      | React.MouseEvent<HTMLButtonElement>
+      | React.TouchEvent<HTMLButtonElement>
+  ) {
+    event?.preventDefault();
+    event?.stopPropagation();
+
+    if (product.availabilityStatus === "sold_out" || isAdding) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (now - lastInteractionRef.current < 350) {
+      return;
+    }
+
+    lastInteractionRef.current = now;
+    setIsAdding(true);
+
+    try {
+      useCartStore.getState().addItem(product);
+      toast.success(`${product.name} agregado al carrito`);
+    } catch {
+      toast.error("No pudimos agregar el producto. Intenta nuevamente.");
+    } finally {
+      window.setTimeout(() => {
+        setIsAdding(false);
+      }, 180);
+    }
+  }
 
   return (
     <button
       type="button"
-      disabled={product.availabilityStatus === "sold_out" || isPending}
-      onClick={() =>
-        startTransition(() => {
-          addItem(product);
-          toast.success(`${product.name} agregado al carrito`);
-        })
-      }
-      className="button-primary w-full px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+      disabled={product.availabilityStatus === "sold_out" || isAdding}
+      onClick={handleAdd}
+      onTouchEnd={handleAdd}
+      className="button-primary relative z-10 w-full select-none px-5 py-3 text-sm [touch-action:manipulation] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {product.availabilityStatus === "sold_out"
         ? "No disponible"
-        : "Agregar al carrito"}
+        : isAdding
+          ? "Agregando..."
+          : "Agregar al carrito"}
     </button>
   );
 }
