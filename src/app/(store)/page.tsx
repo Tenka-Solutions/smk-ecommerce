@@ -13,14 +13,14 @@ export default async function HomePage() {
     <div className="pb-18">
       <section className="page-shell pt-12 sm:pt-16">
         <div className="panel-card overflow-hidden rounded-[2.5rem] bg-[linear-gradient(135deg,#1d1a17_0%,#2a241e_45%,#6d4a2d_100%)] px-6 py-12 text-white sm:px-10 sm:py-16">
-          <div className="max-w-3xl">
+          <div className="max-w-3xl text-black">
             <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium">
               Ecommerce oficial SMK Vending
             </span>
-            <h1 className="mt-6 text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
+            <h1 className=" mt-6 text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
               Máquinas de café, café e insumos para vender y operar mejor en Chile.
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-white/75 sm:text-lg">
+            <p className="mt-5 max-w-2xl text-base leading-8 sm:text-lg">
               Compra online con precios en CLP, IVA incluido y una experiencia
               clara para empresas, oficinas, cafeterías, minimarkets y negocios.
             </p>
