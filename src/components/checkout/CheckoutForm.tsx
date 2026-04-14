@@ -1,174 +1,204 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useCartStore } from "@/lib/cart-store";
-import { checkoutSchema, CheckoutFormData } from "@/lib/validations/checkout";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useCartStore } from "@/lib/cart-store";
+import {
+  checkoutCustomerSchema,
+  checkoutPayloadSchema,
+  checkoutShippingSchema,
+  toCheckoutItemPayload,
+} from "@/modules/checkout/schema";
 
-const REGIONS = [
-  "Región de Arica y Parinacota",
-  "Región de Tarapacá",
-  "Región de Antofagasta",
-  "Región de Atacama",
-  "Región de Coquimbo",
-  "Región de Valparaíso",
-  "Región Metropolitana",
-  "Región del Libertador General Bernardo O'Higgins",
-  "Región del Maule",
-  "Región de Ñuble",
-  "Región del Biobío",
-  "Región de La Araucanía",
-  "Región de Los Ríos",
-  "Región de Los Lagos",
-  "Región de Aysén",
-  "Región de Magallanes",
-];
+type Errors = Record<string, string>;
 
-type FieldErrors = Partial<Record<keyof CheckoutFormData, string>>;
+const initialForm = {
+  fullName: "",
+  email: "",
+  phone: "",
+  rut: "",
+  companyName: "",
+  businessName: "",
+  businessActivity: "",
+  region: "",
+  comuna: "",
+  street: "",
+  number: "",
+  apartment: "",
+  references: "",
+  deliveryNotes: "",
+};
 
-export default function CheckoutForm() {
-  const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [form, setForm] = useState<CheckoutFormData>({
-    name: "",
-    email: "",
-    phone: "",
-    rut: "",
-    region: "",
-    comuna: "",
-    address: "",
-    notes: "",
-  });
+export function CheckoutForm({
+  authMode,
+}: {
+  authMode: "guest" | "google";
+}) {
+  const items = useCartStore((store) => store.items);
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState<Errors>({});
+  const [isPending, startTransition] = useTransition();
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof CheckoutFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
+  const customerPayload = useMemo(
+    () => ({
+      fullName: form.fullName,
+      email: form.email,
+      phone: form.phone,
+      rut: form.rut || undefined,
+      companyName: form.companyName || undefined,
+      businessName: form.businessName || undefined,
+      businessActivity: form.businessActivity || undefined,
+    }),
+    [form]
+  );
+
+  const shippingPayload = useMemo(
+    () => ({
+      region: form.region,
+      comuna: form.comuna,
+      street: form.street,
+      number: form.number,
+      apartment: form.apartment || undefined,
+      references: form.references || undefined,
+      deliveryNotes: form.deliveryNotes || undefined,
+    }),
+    [form]
+  );
+
+  function setField(name: string, value: string) {
+    setForm((currentForm) => ({ ...currentForm, [name]: value }));
+    setErrors((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[name];
+      return nextErrors;
+    });
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-    const result = checkoutSchema.safeParse(form);
-    if (!result.success) {
-      const fieldErrors: FieldErrors = {};
-      result.error.issues.forEach((issue) => {
-        const field = issue.path[0] as keyof CheckoutFormData;
-        fieldErrors[field] = issue.message;
+    const customerResult = checkoutCustomerSchema.safeParse(customerPayload);
+    const shippingResult = checkoutShippingSchema.safeParse(shippingPayload);
+
+    if (!customerResult.success || !shippingResult.success) {
+      const nextErrors: Errors = {};
+
+      customerResult.error?.issues.forEach((issue) => {
+        nextErrors[String(issue.path[0])] = issue.message;
       });
-      setErrors(fieldErrors);
+      shippingResult.error?.issues.forEach((issue) => {
+        nextErrors[String(issue.path[0])] = issue.message;
+      });
+
+      setErrors(nextErrors);
       return;
     }
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/checkout/create-preference", {
+    const payload = {
+      customer: customerResult.data,
+      shipping: shippingResult.data,
+      items: toCheckoutItemPayload(items),
+      authMode,
+    };
+
+    const validationResult = checkoutPayloadSchema.safeParse(payload);
+
+    if (!validationResult.success) {
+      toast.error("Revisa los datos del checkout antes de continuar.");
+      return;
+    }
+
+    startTransition(async () => {
+      const response = await fetch("/api/payments/getnet/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, payer: result.data }),
+        body: JSON.stringify(validationResult.data),
       });
 
-      if (!res.ok) throw new Error("Error al procesar el pago");
+      const data = await response.json();
 
-      const { init_point } = await res.json();
-      clearCart();
-      router.push(init_point);
-    } catch (err) {
-      toast.error("No se pudo iniciar el pago. Intenta nuevamente.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      if (!response.ok || !data.redirectUrl) {
+        toast.error(data.error ?? "No fue posible iniciar el pago.");
+        return;
+      }
+
+      window.location.href = data.redirectUrl;
+    });
   }
 
-  const field = (
-    name: keyof CheckoutFormData,
-    label: string,
-    props?: React.InputHTMLAttributes<HTMLInputElement>
-  ) => (
-    <div>
-      <label className="block text-sm font-medium text-[#3d464d] mb-1.5">
-        {label}
-      </label>
-      <input
-        name={name}
-        value={form[name] ?? ""}
-        onChange={handleChange}
-        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition ${
-          errors[name]
-            ? "border-red-400 focus:border-red-400 focus:ring-red-200"
-            : "border-[#ced4da] focus:border-[#ffd333] focus:ring-[#ffd333]/25"
-        }`}
-        {...props}
-      />
-      {errors[name] && (
-        <p className="mt-1 text-xs text-red-500">{errors[name]}</p>
-      )}
-    </div>
-  );
-
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-5">
-      <h2 className="text-lg font-bold text-[#3d464d]">Datos de contacto</h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {field("name", "Nombre completo", { placeholder: "Juan Pérez" })}
-        {field("rut", "RUT", { placeholder: "12.345.678-9" })}
+    <form onSubmit={handleSubmit} className="panel-card rounded-[2rem] p-6 sm:p-8">
+      <div>
+        <p className="section-kicker">Datos del cliente</p>
+        <h2 className="mt-3 text-2xl font-semibold">Checkout</h2>
+        <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
+          Puedes comprar como invitado o continuar con tu cuenta. Los precios
+          mostrados ya incluyen IVA.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {field("email", "Correo electrónico", { type: "email", placeholder: "juan@empresa.cl" })}
-        {field("phone", "Teléfono", { type: "tel", placeholder: "+56 9 1234 5678" })}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        {[
+          ["fullName", "Nombre completo", "Juan Pérez"],
+          ["email", "Correo electrónico", "correo@empresa.cl"],
+          ["phone", "Teléfono", "+56 9 1234 5678"],
+          ["rut", "RUT (opcional)", "12.345.678-9"],
+          ["companyName", "Empresa (opcional)", "SMK Vending"],
+          ["businessName", "Razón social (opcional)", "SMK Vending SpA"],
+          ["businessActivity", "Giro (opcional)", "Servicios de café"],
+        ].map(([name, label, placeholder]) => (
+          <div key={name} className={name === "businessActivity" ? "sm:col-span-2" : ""}>
+            <label className="mb-2 block text-sm font-medium">{label}</label>
+            <input
+              className="form-input"
+              value={form[name as keyof typeof form]}
+              placeholder={placeholder}
+              onChange={(event) => setField(name, event.target.value)}
+            />
+            {errors[name] ? (
+              <p className="mt-2 text-xs text-[var(--color-danger)]">
+                {errors[name]}
+              </p>
+            ) : null}
+          </div>
+        ))}
       </div>
 
-      <div className="border-t border-[#f5f5f5] pt-5">
-        <h2 className="text-lg font-bold text-[#3d464d] mb-5">Dirección de envío</h2>
-
-        <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-[#3d464d] mb-1.5">Región</label>
-            <select
-              name="region"
-              value={form.region}
-              onChange={handleChange}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition bg-white ${
-                errors.region
-                  ? "border-red-400 focus:border-red-400 focus:ring-red-200"
-                  : "border-[#ced4da] focus:border-[#ffd333] focus:ring-[#ffd333]/25"
-              }`}
-            >
-              <option value="">Selecciona una región</option>
-              {REGIONS.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-            {errors.region && <p className="mt-1 text-xs text-red-500">{errors.region}</p>}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {field("comuna", "Comuna", { placeholder: "Concepción" })}
-            {field("address", "Dirección", { placeholder: "Av. Ejemplo 123" })}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[#3d464d] mb-1.5">
-              Notas del pedido{" "}
-              <span className="text-[#6c757d] font-normal">(opcional)</span>
+      <div className="mt-8 border-t border-[var(--color-border)] pt-8">
+        <p className="section-kicker">Despacho</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {[
+            ["region", "Región", "Región Metropolitana"],
+            ["comuna", "Comuna", "Providencia"],
+            ["street", "Dirección", "Av. Ejemplo"],
+            ["number", "Número", "1234"],
+            ["apartment", "Departamento / oficina (opcional)", "Of. 405"],
+            ["references", "Referencias", "Recepción primer piso"],
+          ].map(([name, label, placeholder]) => (
+            <div key={name}>
+              <label className="mb-2 block text-sm font-medium">{label}</label>
+              <input
+                className="form-input"
+                value={form[name as keyof typeof form]}
+                placeholder={placeholder}
+                onChange={(event) => setField(name, event.target.value)}
+              />
+              {errors[name] ? (
+                <p className="mt-2 text-xs text-[var(--color-danger)]">
+                  {errors[name]}
+                </p>
+              ) : null}
+            </div>
+          ))}
+          <div className="sm:col-span-2">
+            <label className="mb-2 block text-sm font-medium">
+              Observaciones de entrega
             </label>
             <textarea
-              name="notes"
-              value={form.notes ?? ""}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Instrucciones especiales, referencias, etc."
-              className="w-full border border-[#ced4da] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#ffd333] focus:ring-2 focus:ring-[#ffd333]/25 transition resize-none"
+              className="form-input min-h-28 resize-none"
+              value={form.deliveryNotes}
+              placeholder="Indicaciones para entrega, horario o acceso."
+              onChange={(event) => setField("deliveryNotes", event.target.value)}
             />
           </div>
         </div>
@@ -176,20 +206,10 @@ export default function CheckoutForm() {
 
       <button
         type="submit"
-        disabled={loading || items.length === 0}
-        className="w-full bg-[#ffd333] hover:bg-[#e6be2e] disabled:opacity-60 disabled:cursor-not-allowed text-[#3d464d] font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+        disabled={items.length === 0 || isPending}
+        className="button-primary mt-8 w-full px-6 py-3 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? (
-          <>
-            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            Procesando...
-          </>
-        ) : (
-          "Pagar con MercadoPago"
-        )}
+        {isPending ? "Redirigiendo al pago..." : "Pagar con Getnet"}
       </button>
     </form>
   );

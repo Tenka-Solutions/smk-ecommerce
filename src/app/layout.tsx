@@ -1,34 +1,41 @@
 import type { Metadata } from "next";
-import { Open_Sans } from "next/font/google";
-import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import CartProvider from "@/components/providers/CartProvider";
+import { Inter, Sora } from "next/font/google";
 import { Toaster } from "sonner";
+import { AppProviders } from "@/components/providers/AppProviders";
+import { env } from "@/lib/env";
+import { siteConfig } from "@/modules/shared/site";
+import "./globals.css";
 
-const openSans = Open_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-open-sans",
+  variable: "--font-sans",
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yellowbox.cl";
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL(BASE_URL),
+  metadataBase: new URL(env.siteUrl),
   title: {
-    default: "Yellow Box | Vending & Café",
-    template: "%s | Yellow Box",
+    default: siteConfig.defaultTitle,
+    template: `%s | ${siteConfig.name}`,
   },
-  description:
-    "Máquinas vending, café premium y accesorios. Soluciones automáticas para empresas en la Región del Biobío, Chile.",
-  keywords: ["vending", "máquinas vending", "café", "café automático", "biobío", "chile"],
+  description: siteConfig.description,
+  keywords: siteConfig.keywords,
   openGraph: {
     type: "website",
     locale: "es_CL",
-    siteName: "Yellow Box",
-    images: [{ url: "/og-default.jpg", width: 1200, height: 630 }],
+    siteName: siteConfig.name,
+    title: siteConfig.defaultTitle,
+    description: siteConfig.description,
   },
-  twitter: { card: "summary_large_image" },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.defaultTitle,
+    description: siteConfig.description,
+  },
 };
 
 export default function RootLayout({
@@ -37,14 +44,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${openSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-[var(--font-open-sans)]">
-        <CartProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <Toaster position="bottom-right" richColors />
-        </CartProvider>
+    <html
+      lang="es"
+      className={`${inter.variable} ${sora.variable} h-full antialiased`}
+    >
+      <body className="min-h-full bg-[var(--color-page)] font-[var(--font-sans)] text-[var(--color-ink)]">
+        <AppProviders>{children}</AppProviders>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

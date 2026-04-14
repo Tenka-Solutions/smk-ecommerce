@@ -18,8 +18,15 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      { source: "/carrito", destination: "/cart", permanent: true },
-      { source: "/pago", destination: "/checkout", permanent: true },
+      { source: "/shop", destination: "/tienda", permanent: true },
+      { source: "/shop/:path*", destination: "/tienda", permanent: true },
+      { source: "/cart", destination: "/carrito", permanent: true },
+      { source: "/confirmacion", destination: "/compra/exito", permanent: true },
+      {
+        source: "/pago-fallido",
+        destination: "/compra/rechazada",
+        permanent: true,
+      },
     ];
   },
 };

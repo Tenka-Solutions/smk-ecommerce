@@ -1,36 +1,43 @@
 "use client";
 
 import Link from "next/link";
+import "./globals.css";
 
-export default function Error({
+export default function GlobalError({
+  error,
   reset,
 }: {
-  error: Error;
+  error: Error & { digest?: string };
   reset: () => void;
 }) {
   return (
-    <div className="max-w-xl mx-auto px-4 py-24 text-center">
-      <span className="text-6xl block mb-6">⚠️</span>
-      <h1 className="text-2xl font-bold text-[#3d464d] mb-3">
-        Algo salió mal
-      </h1>
-      <p className="text-[#6c757d] mb-8">
-        Ocurrió un error inesperado. Puedes intentarlo nuevamente o volver a la tienda.
-      </p>
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <button
-          onClick={reset}
-          className="bg-[#ffd333] hover:bg-[#e6be2e] text-[#3d464d] font-bold px-8 py-3 rounded-lg transition-colors"
-        >
-          Reintentar
-        </button>
-        <Link
-          href="/"
-          className="border border-[#3d464d] text-[#3d464d] hover:bg-[#3d464d] hover:text-white font-medium px-8 py-3 rounded-lg transition-colors"
-        >
-          Volver al inicio
-        </Link>
-      </div>
-    </div>
+    <html lang="es">
+      <body className="min-h-screen bg-[var(--color-page)] text-[var(--color-ink)]">
+        <div className="page-shell flex min-h-screen items-center py-16">
+          <div className="panel-card mx-auto max-w-2xl rounded-[2rem] px-8 py-14 text-center">
+            <p className="section-kicker">Error</p>
+            <h1 className="mt-4 text-4xl font-semibold">
+              Ocurrio un problema inesperado
+            </h1>
+            <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">
+              {error.message ||
+                "No pudimos completar la operacion. Intenta nuevamente en unos segundos."}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <button
+                type="button"
+                onClick={reset}
+                className="button-primary px-6 py-3"
+              >
+                Reintentar
+              </button>
+              <Link href="/" className="button-secondary px-6 py-3">
+                Volver al inicio
+              </Link>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
   );
 }

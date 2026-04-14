@@ -1,40 +1,71 @@
 "use client";
 
+import Image from "next/image";
+import { formatClp } from "@/lib/format/currency";
 import { useCartStore } from "@/lib/cart-store";
-import { formatPrice, getCategoryIcon } from "@/lib/products";
 
-export default function OrderSummary() {
-  const { items, totalPrice } = useCartStore();
+export function OrderSummary() {
+  const items = useCartStore((store) => store.items);
+  const subtotal = useCartStore((store) => store.subtotal());
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <h2 className="text-lg font-bold text-[#3d464d] mb-4">Tu pedido</h2>
-
-      <ul className="divide-y divide-[#f5f5f5]">
+    <aside className="panel-card rounded-[2rem] p-6">
+      <h2 className="text-2xl font-semibold text-[var(--color-ink)]">
+        Resumen del pedido
+      </h2>
+      <ul className="mt-5 space-y-3">
         {items.map((item) => (
-          <li key={item.id} className="flex items-center gap-3 py-3">
-            <div className="bg-[#f5f5f5] rounded-lg w-10 h-10 flex items-center justify-center shrink-0 text-lg">
-              {getCategoryIcon(item.category)}
+          <li
+            key={item.id}
+            className="flex items-center gap-3 rounded-[1.4rem] border border-[var(--color-border)] bg-white/80 p-3"
+          >
+            <div className="relative h-14 w-14 overflow-hidden rounded-[1rem] bg-[var(--color-surface-strong)]">
+              <Image
+                src={item.image}
+                alt={item.name}
+                fill
+                sizes="56px"
+                className="object-contain p-2"
+              />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#3d464d] truncate">{item.name}</p>
-              <p className="text-xs text-[#6c757d]">× {item.quantity}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{item.name}</p>
+              <p className="text-xs text-[var(--color-muted)]">
+                {item.quantity} unidad{item.quantity === 1 ? "" : "es"}
+              </p>
             </div>
-            <span className="text-sm font-semibold text-[#3d464d] shrink-0">
-              {formatPrice(item.price * item.quantity)}
+            <span className="text-sm font-semibold">
+              {formatClp(item.priceClpTaxInc * item.quantity)}
             </span>
           </li>
         ))}
       </ul>
-
-      <div className="border-t border-[#ced4da] mt-2 pt-4 flex justify-between font-bold text-[#3d464d] text-lg">
-        <span>Total</span>
-        <span>{formatPrice(totalPrice())}</span>
+      <div className="mt-6 space-y-3 text-sm text-[var(--color-muted)]">
+        <div className="flex items-center justify-between">
+          <span>Subtotal</span>
+          <span className="font-semibold text-[var(--color-ink)]">
+            {formatClp(subtotal)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>IVA</span>
+          <span className="font-semibold text-[var(--color-ink)]">Incluido</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Despacho</span>
+          <span className="font-semibold text-[var(--color-ink)]">
+            Por confirmar
+          </span>
+        </div>
       </div>
-
-      <p className="text-xs text-[#6c757d] mt-3 text-center">
-        Serás redirigido a MercadoPago para completar el pago de forma segura.
-      </p>
-    </div>
+      <div className="mt-6 rounded-[1.5rem] bg-[var(--color-accent)] px-5 py-4 text-white">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold uppercase tracking-[0.18em]">
+            Total
+          </span>
+          <span className="text-2xl font-semibold">{formatClp(subtotal)}</span>
+        </div>
+      </div>
+    </aside>
   );
 }

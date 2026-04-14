@@ -1,28 +1,174 @@
 @import "tailwindcss";
 
 :root {
-  --brand-yellow: #ffd333;
-  --brand-dark: #3d464d;
-  --brand-beige: #bdb093;
-  --brand-gray: #f5f5f5;
-  --brand-text: #212529;
-  --brand-muted: #6c757d;
-
-  --background: #f5f5f5;
-  --foreground: #212529;
+  --color-page: #f5f1eb;
+  --color-surface: #fffdfa;
+  --color-surface-strong: #f2eadf;
+  --color-soft: #ece1d4;
+  --color-ink: #1d1a17;
+  --color-muted: #6f665d;
+  --color-accent: #9a6a3a;
+  --color-accent-strong: #7f562d;
+  --color-accent-soft: #ead9c6;
+  --color-border: rgba(29, 26, 23, 0.1);
+  --color-success: #3d7a4a;
+  --color-warning: #9a6a3a;
+  --color-danger: #9b423b;
+  --shadow-soft: 0 30px 60px -38px rgba(29, 26, 23, 0.28);
+  --shadow-card: 0 18px 45px -34px rgba(29, 26, 23, 0.22);
+  --background: var(--color-page);
+  --foreground: var(--color-ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand-yellow: var(--brand-yellow);
-  --color-brand-dark: var(--brand-dark);
-  --color-brand-beige: var(--brand-beige);
-  --color-brand-gray: var(--brand-gray);
-  --color-brand-muted: var(--brand-muted);
+  --color-page: var(--color-page);
+  --color-surface: var(--color-surface);
+  --color-surface-strong: var(--color-surface-strong);
+  --color-soft: var(--color-soft);
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-border: var(--color-border);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background:
+    radial-gradient(circle at top left, rgba(154, 106, 58, 0.12), transparent 30%),
+    linear-gradient(180deg, #faf7f2 0%, var(--color-page) 100%);
+}
+
+body,
+input,
+button,
+select,
+textarea {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+[data-display="true"] {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: -0.045em;
+}
+
+::selection {
+  background: rgba(154, 106, 58, 0.22);
+  color: var(--color-ink);
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+img {
+  user-select: none;
+}
+
+.page-shell {
+  margin-inline: auto;
+  width: min(100%, 80rem);
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .page-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-shell {
+    padding-inline: 2rem;
+  }
+}
+
+.surface-card {
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, white 88%, var(--color-page) 12%);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: white;
+  font-weight: 600;
+}
+
+.button-primary:hover {
+  background: var(--color-accent-strong);
+}
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.button-secondary:hover {
+  background: white;
+}
+
+.section-kicker {
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.form-input {
+  width: 100%;
+  border-radius: 1.125rem;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.84);
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 65%, white 35%);
+  box-shadow: 0 0 0 4px rgba(154, 106, 58, 0.1);
 }

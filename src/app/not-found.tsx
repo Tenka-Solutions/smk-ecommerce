@@ -2,27 +2,23 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="max-w-xl mx-auto px-4 py-24 text-center">
-      <p className="text-8xl font-bold text-[#ffd333] mb-4">404</p>
-      <h1 className="text-2xl font-bold text-[#3d464d] mb-3">
-        Página no encontrada
-      </h1>
-      <p className="text-[#6c757d] mb-8">
-        La página que buscas no existe.
-      </p>
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Link
-          href="/"
-          className="bg-[#ffd333] hover:bg-[#e6be2e] text-[#3d464d] font-bold px-8 py-3 rounded-lg transition-colors"
-        >
-          Ir al inicio
-        </Link>
-        <Link
-          href="/shop"
-          className="border border-[#3d464d] text-[#3d464d] hover:bg-[#3d464d] hover:text-white font-medium px-8 py-3 rounded-lg transition-colors"
-        >
-          Ver tienda
-        </Link>
+    <div className="page-shell flex min-h-[72vh] items-center py-16">
+      <div className="panel-card mx-auto max-w-2xl rounded-[2rem] px-8 py-14 text-center">
+        <p className="section-kicker">404</p>
+        <h1 className="mt-4 text-4xl font-semibold">
+          La pagina que buscas no esta disponible
+        </h1>
+        <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">
+          Puede haber cambiado de ruta o ya no formar parte del ecommerce.
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link href="/" className="button-primary px-6 py-3">
+            Ir al inicio
+          </Link>
+          <Link href="/tienda" className="button-secondary px-6 py-3">
+            Ver tienda
+          </Link>
+        </div>
       </div>
     </div>
   );

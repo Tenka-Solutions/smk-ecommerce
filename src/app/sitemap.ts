@@ -1,20 +1,49 @@
 import { MetadataRoute } from "next";
-import { products } from "@/lib/products";
+import { env } from "@/lib/env";
+import { getCatalogCategories, getCatalogProducts } from "@/modules/catalog/repository";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yellowbox.cl";
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [categories, products] = await Promise.all([
+    getCatalogCategories(),
+    getCatalogProducts(),
+  ]);
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: BASE_URL, changeFrequency: "weekly", priority: 1 },
-    { url: `${BASE_URL}/shop`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${BASE_URL}/contacto`, changeFrequency: "monthly", priority: 0.5 },
+  const staticRoutes = [
+    "",
+    "/tienda",
+    "/carrito",
+    "/checkout",
+    "/cotizar",
+    "/contacto",
+    "/nosotros",
+    "/faq",
+    "/despachos",
+    "/terminos",
+    "/privacidad",
+    "/login",
   ];
 
-  const productRoutes: MetadataRoute.Sitemap = products.map((p) => ({
-    url: `${BASE_URL}/shop/${p.id}`,
+  const staticEntries: MetadataRoute.Sitemap = staticRoutes.map((path) => ({
+    url: `${env.siteUrl}${path}`,
+    changeFrequency: path === "" ? "daily" : "weekly",
+    priority: path === "" ? 1 : 0.7,
+  }));
+
+  const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({
+    url: `${env.siteUrl}/categorias/${category.slug}`,
     changeFrequency: "weekly",
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...productRoutes];
+  const productEntries: MetadataRoute.Sitemap = products.map((product) => ({
+    url: `${env.siteUrl}/productos/${product.slug}`,
+    changeFrequency: "weekly",
+    priority: 0.85,
+  }));
+
+  return [
+    ...staticEntries,
+    ...categoryEntries,
+    ...productEntries,
+  ];
 }

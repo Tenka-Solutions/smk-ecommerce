@@ -1,14 +1,15 @@
 import { MetadataRoute } from "next";
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://yellowbox.cl";
+import { env } from "@/lib/env";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/checkout", "/api/"],
-    },
-    sitemap: `${BASE_URL}/sitemap.xml`,
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: ["/api/", "/admin", "/mi-cuenta"],
+      },
+    ],
+    sitemap: `${env.siteUrl}/sitemap.xml`,
   };
 }
