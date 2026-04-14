@@ -10,18 +10,19 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="pb-18">
-      <section className="page-shell pt-12 sm:pt-16">
-        <div className="panel-card overflow-hidden rounded-[2.5rem] bg-[linear-gradient(135deg,#1d1a17_0%,#2a241e_45%,#6d4a2d_100%)] px-6 py-12 text-white sm:px-10 sm:py-16">
-          <div className="max-w-3xl text-black">
-            <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium">
-              Ecommerce oficial SMK Vending
+    <div className="">
+      <section className="page-shell pt-2 sm:pt-6">
+        <div className="panel-card overflow-hidden rounded-[2.5rem] bg-[linear-gradient(135deg,#1d1a17_0%,#2a241e_45%,#6d4a2d_100%)] px-5 text-white sm:px-10">
+          <div className="max-w-full text-black">
+            <span className="inline-flex rounded-full border border-white/10 bg-white/10  pt-4 text-sm font-medium">
+              Ecommerce oficial
             </span>
-            <h1 className=" mt-6 text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
+            <h1 className="max-w-5xl mt-3 text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
               Máquinas de café, café e insumos para vender y operar mejor en Chile.
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 sm:text-lg">
-              Compra online con precios en CLP, IVA incluido y una experiencia
+          <div className=" flex flex-col gap-20 sm:flex-row mb-5">
+            <p className="hidden lg:flex mt-5 max-w-xl text-base leading-8 sm:text-lg">
+              Compra online con precios fijos, IVA incluido y una experiencia
               clara para empresas, oficinas, cafeterías, minimarkets y negocios.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -35,31 +36,21 @@ export default async function HomePage() {
                 Solicitar cotización
               </Link>
             </div>
-            <div className="mt-10 grid gap-3 md:grid-cols-2">
-              {siteConfig.trustSignals.map((signal) => (
-                <div
-                  key={signal}
-                  className="rounded-[1.3rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-6 text-white/78"
-                >
-                  {signal}
-                </div>
-              ))}
-            </div>
+          </div>
           </div>
         </div>
       </section>
 
-      <section className="page-shell mt-16">
-        <div className="mb-8">
+      <section className="page-shell mt-5">
+        <div className="mb-5">
           <p className="section-kicker">Categorías</p>
-          <h2 className="mt-3 text-3xl font-semibold">Líneas principales</h2>
         </div>
-        <div className="grid gap-4 lg:grid-cols-4">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 scroll-smooth touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0 lg:pb-0">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/categorias/${category.slug}`}
-              className="surface-card rounded-[1.75rem] px-5 py-6 hover:-translate-y-0.5"
+              className="surface-card min-w-[88%] snap-start rounded-[1.75rem] px-5 py-6 hover:-translate-y-0.5 lg:min-w-0"
             >
               <h3 className="text-xl font-semibold text-[var(--color-ink)]">
                 {category.name}

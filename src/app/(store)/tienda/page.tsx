@@ -21,19 +21,14 @@ export default async function StorePage({
   });
 
   return (
-    <div className="page-shell py-10">
+    <div className="page-shell pt-5">
       <div className="max-w-3xl">
         <p className="section-kicker">Tienda</p>
-        <h1 className="mt-3 text-4xl font-semibold">Catálogo SMK Vending</h1>
-        <p className="mt-4 text-base leading-8 text-[var(--color-muted)]">
-          Precios en CLP con IVA incluido. Despacho disponible en Chile con
-          coordinación posterior a la compra.
-        </p>
       </div>
-      <div className="mt-8">
+      <div className="mt-4">
         <CatalogFilters />
       </div>
-      <div className="mt-8">
+      <div className="mt-3">
         {products.length ? (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {products.map((product) => (
