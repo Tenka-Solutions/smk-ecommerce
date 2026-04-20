@@ -7,8 +7,8 @@ import { AddToCartButton } from "@/components/catalog/AddToCartButton";
 
 export function ProductCard({ product }: { product: CatalogProduct }) {
   return (
-    <article className="surface-card flex h-full flex-col rounded-[1.8rem] p-4">
-      <div className="relative overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)]">
+    <article className="flex h-full flex-col rounded-[1.8rem] border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-card)]">
+      <div className="relative overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-page)]">
         <div className="absolute left-4 top-4 z-10">
           <AvailabilityBadge status={product.availabilityStatus} />
         </div>
@@ -34,7 +34,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
         <div className="mt-4 grid gap-2 text-sm text-[var(--color-muted)]">
           {product.highlights.slice(0, 3).map((highlight) => (
             <div key={highlight} className="flex gap-2">
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
+              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-gold)]" />
               <span>{highlight}</span>
             </div>
           ))}

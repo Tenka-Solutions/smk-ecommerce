@@ -13,6 +13,8 @@ export default function CartProvider({
       try {
         await useCartStore.persist.rehydrate();
       } catch {
+        // ignore
+      } finally {
         useCartStore.getState().setHasHydrated(true);
       }
     };

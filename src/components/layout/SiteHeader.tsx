@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/cart-store";
@@ -8,16 +9,19 @@ import { publicNavigation } from "@/modules/shared/site";
 export function SiteHeader() {
   const pathname = usePathname();
   const totalItems = useCartStore((store) => store.totalItems());
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[rgba(245,241,235,0.9)] backdrop-blur">
-      <div className="page-shell flex h-18 items-center justify-between gap-6">
+    <header className="sticky top-0 z-50 border-b border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)] backdrop-blur">
+      <div className="page-shell flex h-16 items-center justify-between gap-6 sm:h-18">
+        {/* Logo */}
         <Link href="/" className="shrink-0">
-          <span className="font-[var(--font-display)] text-xl font-semibold tracking-[-0.06em] text-[var(--color-ink)]">
-            SMK <span className="text-[var(--color-accent)]">Vending</span>
+          <span className="font-[var(--font-display)] text-xl font-semibold tracking-[-0.06em] text-white">
+            SMK <span className="text-[var(--color-gold)]">Vending</span>
           </span>
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-6 lg:flex">
           {publicNavigation.map((item) => {
             const isActive = pathname === item.href;
@@ -25,10 +29,10 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm font-medium ${
+                className={`text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-[var(--color-accent)]"
-                    : "text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+                    ? "text-[var(--color-gold)]"
+                    : "text-[rgba(255,255,255,0.8)] hover:text-white"
                 }`}
               >
                 {item.label}
@@ -37,13 +41,17 @@ export function SiteHeader() {
           })}
         </nav>
 
+        {/* Right side */}
         <div className="flex items-center gap-3">
-          <Link href="/login" className="hidden text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)] sm:inline-flex">
+          <Link
+            href="/login"
+            className="hidden text-sm font-medium text-[rgba(255,255,255,0.6)] hover:text-white sm:inline-flex"
+          >
             Mi cuenta
           </Link>
           <Link
             href="/carrito"
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/80 text-[var(--color-ink)]"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(204,131,40,0.3)] bg-[rgba(204,131,40,0.1)] text-[var(--color-gold)]"
             aria-label="Carrito"
           >
             <svg
@@ -61,13 +69,59 @@ export function SiteHeader() {
               />
             </svg>
             {totalItems > 0 ? (
-              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-gold)] px-1 text-[10px] font-bold text-white">
                 {totalItems > 99 ? "99+" : totalItems}
               </span>
             ) : null}
           </Link>
+
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white lg:hidden"
+            aria-label="Menú"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              {menuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <nav className="border-t border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)] px-4 pb-4 pt-2 lg:hidden">
+          {publicNavigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  isActive
+                    ? "text-[var(--color-gold)]"
+                    : "text-[rgba(255,255,255,0.7)] hover:text-white"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <Link
+            href="/login"
+            onClick={() => setMenuOpen(false)}
+            className="mt-2 block rounded-lg px-3 py-2.5 text-sm font-medium text-[rgba(255,255,255,0.5)] hover:text-white"
+          >
+            Mi cuenta
+          </Link>
+        </nav>
+      )}
     </header>
   );
 }

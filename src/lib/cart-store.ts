@@ -129,8 +129,8 @@ export const useCartStore = create<CartStore>()(
           hasHydrated: true,
         };
       },
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
+      onRehydrateStorage: () => () => {
+        useCartStore.getState().setHasHydrated(true);
       },
     }
   )
