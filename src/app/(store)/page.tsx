@@ -14,17 +14,17 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-[var(--color-dark)]">
+      <section className="bg-[var(--color-hero)] text-[var(--color-hero-foreground)]">
         <div className="page-shell pb-12 pt-8 sm:pb-16 sm:pt-12">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-[0.74rem] font-bold uppercase tracking-[0.24em] text-[var(--color-gold)]">
+              <p className="text-[0.74rem] font-bold uppercase tracking-[0.24em] text-[var(--color-primary)]">
                 Ecommerce oficial
               </p>
-              <h1 className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
+              <h1 className="mt-3 text-3xl font-semibold leading-tight text-[var(--color-hero-foreground)] sm:text-4xl lg:text-5xl">
                 Máquinas de café, café e insumos para tu negocio
               </h1>
-              <p className="mt-4 text-sm leading-relaxed text-[rgba(228,195,173,0.6)] sm:text-base">
+              <p className="mt-4 text-sm leading-relaxed text-[var(--color-hero-muted)] sm:text-base">
                 Precios con IVA incluido · Despacho Chile
               </p>
             </div>
@@ -34,7 +34,7 @@ export default async function HomePage() {
               </Link>
               <Link
                 href="/cotizar"
-                className="inline-flex items-center justify-content rounded-full border border-[rgba(255,255,255,0.2)] px-6 py-3 text-sm font-semibold text-white hover:border-[rgba(255,255,255,0.4)]"
+                className="inline-flex items-center justify-content rounded-full border border-[var(--color-hero-border)] px-6 py-3 text-sm font-semibold text-[var(--color-hero-foreground)] hover:border-[var(--color-primary)]"
               >
                 Solicitar cotización
               </Link>

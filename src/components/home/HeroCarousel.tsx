@@ -63,9 +63,9 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
         {products.map((product) => (
           <article
             key={product.id}
-            className="min-w-[220px] shrink-0 snap-start rounded-[1.25rem] border border-[rgba(228,195,173,0.1)] bg-[rgba(255,255,255,0.04)] p-3 sm:min-w-[240px]"
+            className="min-w-[220px] shrink-0 snap-start rounded-[1.25rem] border border-[var(--color-hero-border)] bg-[var(--color-hero-card)] p-3 sm:min-w-[240px]"
           >
-            <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[rgba(161,123,104,0.1)]">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[var(--color-surface-soft)]">
               <Image
                 src={product.image}
                 alt={product.name}
@@ -76,10 +76,10 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
               />
             </div>
             <div className="mt-3 px-1">
-              <h3 className="line-clamp-1 text-sm font-semibold text-white">
+              <h3 className="line-clamp-1 text-sm font-semibold text-[var(--color-hero-foreground)]">
                 {product.name}
               </h3>
-              <p className="mt-1 text-sm font-bold text-[var(--color-gold)]">
+              <p className="mt-1 text-sm font-bold text-[var(--color-price)]">
                 {formatClp(product.priceClpTaxInc)}
               </p>
               <button
@@ -93,7 +93,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
           </article>
         ))}
       </div>
-      <p className="mt-3 text-center text-xs text-[rgba(228,195,173,0.4)]">
+      <p className="mt-3 text-center text-xs text-[var(--color-hero-muted)]">
         ← arrastra para ver más →
       </p>
     </div>

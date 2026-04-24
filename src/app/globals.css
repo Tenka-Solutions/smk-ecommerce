@@ -3,100 +3,173 @@
 :root,
 html[data-theme="light"] {
   color-scheme: light;
-  --background: #f5f1eb;
-  --foreground: #1d1a17;
-  --surface: #fffdfa;
-  --surface-muted: #f2eadf;
-  --border: rgba(29, 26, 23, 0.1);
-  --primary: #cc8328;
-  --primary-hover: #ad6e21;
-  --secondary: #9a6a3a;
-  --accent: #a17b68;
-  --card: #fffdfa;
-  --card-foreground: #1d1a17;
-  --input: #f5f1eb;
-  --ring: rgba(161, 123, 104, 0.18);
-  --muted: #ece1d4;
-  --muted-foreground: #6f665d;
-  --success: #3d7a4a;
-  --warning: #9a6a3a;
-  --danger: #9b423b;
 
-  --color-page: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-strong: var(--surface-muted);
-  --color-soft: var(--muted);
-  --color-ink: var(--foreground);
-  --color-muted: var(--muted-foreground);
-  --color-accent: var(--secondary);
-  --color-accent-strong: #7f562d;
-  --color-accent-soft: #ead9c6;
-  --color-border: var(--border);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
-  --color-dark: #232d2f;
-  --color-warm: #e4c3ad;
-  --color-mauve: #5b484e;
-  --color-copper: var(--accent);
-  --color-gold: var(--primary);
+  --brand-bronze: #CC8328;
+  --brand-jet-black: #232D2F;
+  --brand-dusty-taupe: #A17B68;
+  --brand-taupe-grey: #5B484E;
+  --brand-desert-sand: #E4C3AD;
+
+  --color-background: #F6E7DA;
+  --color-foreground: #232D2F;
+  --color-heading: #232D2F;
+  --color-surface: #E4C3AD;
+  --color-surface-soft: #F3DED0;
+  --color-card: #FFF8F2;
+  --color-card-foreground: #232D2F;
+  --color-border: #D2AA91;
+  --color-muted: #EBD0BF;
+  --color-muted-foreground: #5B484E;
+  --color-primary: #CC8328;
+  --color-primary-hover: #A9681F;
+  --color-primary-foreground: #FFF8F2;
+  --color-secondary: #A17B68;
+  --color-secondary-hover: #856453;
+  --color-secondary-foreground: #FFF8F2;
+  --color-accent: #5B484E;
+  --color-accent-hover: #46363B;
+  --color-accent-foreground: #FFF8F2;
+  --color-input: #FFF8F2;
+  --color-input-foreground: #232D2F;
+  --color-placeholder: #7C625A;
+  --color-link: #8A551A;
+  --color-link-hover: #CC8328;
+  --color-price: #CC8328;
+  --color-badge: #E4C3AD;
+  --color-badge-foreground: #232D2F;
+  --color-ring: #CC8328;
+  --color-success: #168A4A;
+  --color-success-foreground: #FFFFFF;
+  --color-warning: #CC8328;
+  --color-warning-foreground: #232D2F;
+  --color-danger: #B42318;
+  --color-danger-foreground: #FFFFFF;
+
+  --color-header: #FFF8F2;
+  --color-header-foreground: #232D2F;
+  --color-header-muted: #5B484E;
+  --color-footer: #F3DED0;
+  --color-footer-foreground: #232D2F;
+  --color-footer-muted: #5B484E;
+  --color-hero: #F6E7DA;
+  --color-hero-foreground: #232D2F;
+  --color-hero-muted: #5B484E;
+  --color-hero-card: rgba(255, 248, 242, 0.78);
+  --color-hero-border: rgba(161, 123, 104, 0.22);
+
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --surface: var(--color-surface);
+  --surface-muted: var(--color-surface-soft);
+  --border: var(--color-border);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --secondary: var(--color-secondary);
+  --accent: var(--color-accent);
+  --card: var(--color-card);
+  --card-foreground: var(--color-card-foreground);
+  --input: var(--color-input);
+  --ring: color-mix(in srgb, var(--color-ring) 22%, transparent);
+  --muted: var(--color-muted);
+  --muted-foreground: var(--color-muted-foreground);
+
+  --color-page: var(--color-background);
+  --color-surface-strong: var(--color-surface-soft);
+  --color-soft: var(--color-muted);
+  --color-ink: var(--color-foreground);
+  --color-accent-strong: var(--color-accent-hover);
+  --color-accent-soft: var(--color-muted);
+  --color-dark: var(--color-heading);
+  --color-warm: var(--color-surface);
+  --color-mauve: var(--brand-taupe-grey);
+  --color-copper: var(--brand-dusty-taupe);
+  --color-gold: var(--color-primary);
   --shadow-soft: 0 30px 60px -38px rgba(29, 26, 23, 0.28);
   --shadow-card: 0 18px 45px -34px rgba(29, 26, 23, 0.22);
 }
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --background: #182123;
-  --foreground: #f7eee6;
-  --surface: #232d2f;
-  --surface-muted: #2e383a;
-  --border: rgba(228, 195, 173, 0.14);
-  --primary: #cc8328;
-  --primary-hover: #d8943e;
-  --secondary: #e4c3ad;
-  --accent: #c99b82;
-  --card: rgba(255, 255, 255, 0.055);
-  --card-foreground: #f7eee6;
-  --input: rgba(255, 255, 255, 0.07);
-  --ring: rgba(204, 131, 40, 0.26);
-  --muted: rgba(228, 195, 173, 0.12);
-  --muted-foreground: rgba(247, 238, 230, 0.68);
-  --success: #78b884;
-  --warning: #d9a45f;
-  --danger: #e08a82;
 
-  --color-page: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-strong: var(--surface-muted);
-  --color-soft: var(--muted);
-  --color-ink: var(--foreground);
-  --color-muted: var(--muted-foreground);
-  --color-accent: var(--secondary);
-  --color-accent-strong: #f0d0b8;
-  --color-accent-soft: rgba(228, 195, 173, 0.14);
-  --color-border: var(--border);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
-  --color-dark: #232d2f;
-  --color-warm: #332b2a;
-  --color-mauve: #e4c3ad;
-  --color-copper: var(--accent);
-  --color-gold: var(--primary);
+  --color-background: #232D2F;
+  --color-foreground: #F6E7DA;
+  --color-heading: #F6E7DA;
+  --color-surface: #2C383A;
+  --color-surface-soft: #334144;
+  --color-card: #2B3437;
+  --color-card-foreground: #F6E7DA;
+  --color-border: #5B484E;
+  --color-muted: #3A4649;
+  --color-muted-foreground: #D8B9A5;
+  --color-primary: #CC8328;
+  --color-primary-hover: #E09A3A;
+  --color-primary-foreground: #232D2F;
+  --color-secondary: #A17B68;
+  --color-secondary-hover: #C09883;
+  --color-secondary-foreground: #232D2F;
+  --color-accent: #E4C3AD;
+  --color-accent-hover: #F0D2BE;
+  --color-accent-foreground: #232D2F;
+  --color-input: #2C383A;
+  --color-input-foreground: #F6E7DA;
+  --color-placeholder: #A17B68;
+  --color-link: #E4C3AD;
+  --color-link-hover: #CC8328;
+  --color-price: #E09A3A;
+  --color-badge: #CC8328;
+  --color-badge-foreground: #232D2F;
+  --color-ring: #CC8328;
+  --color-success: #39C178;
+  --color-success-foreground: #232D2F;
+  --color-warning: #E09A3A;
+  --color-warning-foreground: #232D2F;
+  --color-danger: #F97066;
+  --color-danger-foreground: #232D2F;
+
+  --color-header: #232D2F;
+  --color-header-foreground: #F6E7DA;
+  --color-header-muted: #D8B9A5;
+  --color-footer: #1D2628;
+  --color-footer-foreground: #F6E7DA;
+  --color-footer-muted: #D8B9A5;
+  --color-hero: #232D2F;
+  --color-hero-foreground: #F6E7DA;
+  --color-hero-muted: #D8B9A5;
+  --color-hero-card: rgba(255, 255, 255, 0.055);
+  --color-hero-border: rgba(228, 195, 173, 0.14);
+
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --surface: var(--color-surface);
+  --surface-muted: var(--color-surface-soft);
+  --border: var(--color-border);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --secondary: var(--color-secondary);
+  --accent: var(--color-accent);
+  --card: var(--color-card);
+  --card-foreground: var(--color-card-foreground);
+  --input: var(--color-input);
+  --ring: color-mix(in srgb, var(--color-ring) 28%, transparent);
+  --muted: var(--color-muted);
+  --muted-foreground: var(--color-muted-foreground);
+
+  --color-page: var(--color-background);
+  --color-surface-strong: var(--color-surface-soft);
+  --color-soft: var(--color-muted);
+  --color-ink: var(--color-foreground);
+  --color-accent-strong: var(--color-accent-hover);
+  --color-accent-soft: var(--color-muted);
+  --color-dark: var(--color-heading);
+  --color-warm: var(--color-surface);
+  --color-mauve: var(--color-accent);
+  --color-copper: var(--color-secondary-hover);
+  --color-gold: var(--color-primary);
   --shadow-soft: 0 30px 70px -42px rgba(0, 0, 0, 0.75);
   --shadow-card: 0 20px 50px -36px rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-secondary: var(--secondary);
   --color-page: var(--color-page);
   --color-surface: var(--color-surface);
   --color-surface-strong: var(--color-surface-strong);
@@ -132,7 +205,7 @@ html.theme-ready *::after {
 }
 
 body {
-  background: var(--color-page);
+  background: var(--color-background);
 }
 
 body,
@@ -155,8 +228,8 @@ h6,
 }
 
 ::selection {
-  background: rgba(204, 131, 40, 0.22);
-  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-primary) 26%, transparent);
+  color: var(--color-foreground);
 }
 
 a,
@@ -196,15 +269,15 @@ img {
 
 .surface-card {
   border: 1px solid var(--color-border);
-  background: var(--card);
-  color: var(--card-foreground);
+  background: var(--color-card);
+  color: var(--color-card-foreground);
   box-shadow: var(--shadow-card);
 }
 
 .panel-card {
   border: 1px solid var(--color-border);
-  background: var(--card);
-  color: var(--card-foreground);
+  background: var(--color-card);
+  color: var(--color-card-foreground);
   box-shadow: var(--shadow-soft);
 }
 
@@ -214,13 +287,13 @@ img {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 999px;
-  background: var(--primary);
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
   font-weight: 600;
 }
 
 .button-primary:hover {
-  background: var(--primary-hover);
+  background: var(--color-primary-hover);
 }
 
 .button-secondary {
@@ -230,13 +303,13 @@ img {
   gap: 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--card) 86%, transparent);
-  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-card) 86%, transparent);
+  color: var(--color-card-foreground);
   font-weight: 600;
 }
 
 .button-secondary:hover {
-  background: var(--card);
+  background: var(--color-card);
 }
 
 .button-gold {
@@ -245,17 +318,17 @@ img {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 999px;
-  background: var(--primary);
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
   font-weight: 600;
 }
 
 .button-gold:hover {
-  background: var(--primary-hover);
+  background: var(--color-primary-hover);
 }
 
 .section-kicker {
-  color: var(--color-copper);
+  color: var(--color-secondary);
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.24em;
@@ -266,14 +339,18 @@ img {
   width: 100%;
   border-radius: 1.125rem;
   border: 1px solid var(--color-border);
-  background: var(--input);
+  background: var(--color-input);
   padding: 0.9rem 1rem;
   font-size: 0.95rem;
-  color: var(--color-ink);
+  color: var(--color-input-foreground);
   outline: none;
 }
 
 .form-input:focus {
-  border-color: var(--color-copper);
+  border-color: var(--color-ring);
   box-shadow: 0 0 0 4px var(--ring);
+}
+
+.form-input::placeholder {
+  color: var(--color-placeholder);
 }

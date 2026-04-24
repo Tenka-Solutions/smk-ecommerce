@@ -7,12 +7,12 @@ interface CategoriesGridProps {
 
 export function CategoriesGrid({ categories }: CategoriesGridProps) {
   return (
-    <section className="rounded-t-[2rem] bg-[var(--color-warm)] px-4 py-14 sm:px-6 lg:px-8">
+    <section className="rounded-t-[2rem] bg-[var(--color-surface)] px-4 py-14 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[80rem]">
-        <p className="text-[0.74rem] font-bold uppercase tracking-[0.24em] text-[var(--color-mauve)]">
+        <p className="text-[0.74rem] font-bold uppercase tracking-[0.24em] text-[var(--color-accent)]">
           Categorías
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-[var(--color-dark)] sm:text-3xl">
+        <h2 className="mt-2 text-2xl font-semibold text-[var(--color-heading)] sm:text-3xl">
           Explora por tipo de producto
         </h2>
 
@@ -21,12 +21,12 @@ export function CategoriesGrid({ categories }: CategoriesGridProps) {
             <Link
               key={category.id}
               href={`/categorias/${category.slug}`}
-              className="group rounded-2xl border border-[rgba(161,123,104,0.12)] bg-[rgba(255,255,255,0.6)] p-5 shadow-[0_4px_12px_rgba(35,45,47,0.04)] backdrop-blur transition-transform hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.85)]"
+              className="group rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-[var(--shadow-card)] backdrop-blur transition-transform hover:-translate-y-0.5 hover:bg-[color-mix(in_srgb,var(--color-card)_86%,var(--color-surface-soft)_14%)]"
             >
-              <h3 className="text-lg font-semibold text-[var(--color-dark)]">
+              <h3 className="text-lg font-semibold text-[var(--color-heading)]">
                 {category.name}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--color-copper)]">
+              <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted-foreground)]">
                 {category.description}
               </p>
             </Link>

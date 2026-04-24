@@ -36,12 +36,12 @@ const signals = [
 
 export function TrustSignals() {
   return (
-    <section className="bg-[var(--color-surface-strong)] px-4 py-10 sm:px-6 lg:px-8">
+    <section className="bg-[var(--color-surface-soft)] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-[80rem] grid-cols-2 gap-6 sm:grid-cols-4">
         {signals.map((signal) => (
           <div key={signal.label} className="flex flex-col items-center gap-2 text-center">
-            <span className="text-[var(--color-copper)]">{signal.icon}</span>
-            <span className="text-xs font-semibold text-[var(--color-dark)]">
+            <span className="text-[var(--color-secondary)]">{signal.icon}</span>
+            <span className="text-xs font-semibold text-[var(--color-heading)]">
               {signal.label}
             </span>
           </div>
