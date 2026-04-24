@@ -22,6 +22,15 @@ export const env = {
   getnetWebhookUrl:
     process.env.GETNET_WEBHOOK_URL ??
     "http://localhost:3000/api/payments/getnet/webhook",
+  flowApiKey: process.env.FLOW_API_KEY ?? "",
+  flowSecretKey: process.env.FLOW_SECRET_KEY ?? "",
+  flowApiUrl: process.env.FLOW_API_URL ?? "https://sandbox.flow.cl/api",
+  flowReturnUrl:
+    process.env.FLOW_RETURN_URL ??
+    "http://localhost:3000/api/payments/flow/return",
+  flowConfirmUrl:
+    process.env.FLOW_CONFIRM_URL ??
+    "http://localhost:3000/api/payments/flow/confirm",
   emailMode: process.env.EMAIL_MODE ?? "log",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   resendFrom: process.env.RESEND_FROM ?? "no-reply@smkvending.cl",
@@ -51,4 +60,8 @@ export function isGetnetConfigured() {
     env.paymentsMode === "getnet" &&
     Boolean(env.getnetApiUrl && env.getnetApiKey && env.getnetCommerceId)
   );
+}
+
+export function isFlowConfigured() {
+  return Boolean(env.flowApiKey && env.flowSecretKey && env.flowApiUrl);
 }

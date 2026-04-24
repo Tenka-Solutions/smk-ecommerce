@@ -68,9 +68,11 @@ export async function createPayment(
   const checkout = await provider.createCheckout({
     paymentId,
     orderId: order.id,
+    orderNumber: order.orderNumber,
     amount: order.amount,
     currency: order.currency,
     returnUrl: input.returnUrl,
+    customerEmail: order.customerEmail,
   });
 
   const updated =

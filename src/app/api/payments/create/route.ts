@@ -30,13 +30,6 @@ export async function POST(request: Request) {
     const returnUrl =
       parsed.data.returnUrl ?? `${env.siteUrl}/checkout/success`;
 
-    if (env.paymentsMode === "mock" && method !== "mock") {
-      return NextResponse.json(
-        { error: "Solo el provider mock está habilitado" },
-        { status: 400 }
-      );
-    }
-
     const deps = buildPaymentDeps();
     const result = await createPayment(deps, {
       orderId,

@@ -11,7 +11,7 @@ export function createSupabaseOrderLookup(
     async getPayableOrder(orderId: string): Promise<PayableOrder | null> {
       const { data, error } = await client
         .from("orders")
-        .select("id, total_tax_inc")
+        .select("id, order_number, total_tax_inc, customer_email")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -21,8 +21,10 @@ export function createSupabaseOrderLookup(
 
       return {
         id: data.id as string,
+        orderNumber: (data.order_number as string) ?? (data.id as string),
         amount: Math.round(Number(data.total_tax_inc ?? 0)),
         currency: "CLP",
+        customerEmail: (data.customer_email as string) ?? "",
       };
     },
   };

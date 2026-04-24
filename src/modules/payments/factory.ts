@@ -1,7 +1,9 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isFlowConfigured } from "@/lib/env";
 import type { PaymentProvider } from "@/modules/payments/domain/payment";
 import type { CreatePaymentDeps } from "@/modules/payments/use-cases/create-payment";
 import { mockPaymentProvider } from "@/modules/payments/providers/mock";
+import { flowPaymentProvider } from "@/modules/payments/providers/flow";
 import { createSupabasePaymentRepository } from "@/modules/payments/infra/supabase-payment-repository";
 import { createSupabaseOrderLookup } from "@/modules/payments/infra/supabase-order-lookup";
 import { createMemoryPaymentRepository } from "@/modules/payments/infra/memory-payment-repository";
@@ -15,6 +17,10 @@ export function buildPaymentDeps(): CreatePaymentDeps {
   > = {
     mock: mockPaymentProvider,
   };
+
+  if (isFlowConfigured()) {
+    providers.flow = flowPaymentProvider;
+  }
 
   if (adminClient) {
     return {

@@ -11,8 +11,10 @@ export function createMemoryOrderLookup(): OrderLookupPort {
       if (!orderId) return null;
       return {
         id: orderId,
+        orderNumber: `MEM-${orderId.slice(0, 8).toUpperCase()}`,
         amount: PLACEHOLDER_AMOUNT,
         currency: "CLP",
+        customerEmail: "sandbox@smkvending.cl",
       };
     },
   };

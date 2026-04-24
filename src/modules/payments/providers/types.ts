@@ -3,9 +3,11 @@ import type { PaymentProvider } from "@/modules/payments/domain/payment";
 export interface ProviderCheckoutInput {
   paymentId: string;
   orderId: string;
+  orderNumber: string;
   amount: number;
   currency: "CLP";
   returnUrl: string;
+  customerEmail: string;
 }
 
 export interface ProviderCheckoutResult {
