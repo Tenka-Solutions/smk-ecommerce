@@ -4,52 +4,52 @@ const statusMap = {
   pending: {
     label: "Pendiente",
     className:
-      "border-[rgba(154,106,58,0.16)] bg-[rgba(154,106,58,0.08)] text-[var(--color-warning)]",
+      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
   },
   paid: {
     label: "Pagado",
     className:
-      "border-[rgba(61,122,74,0.16)] bg-[rgba(61,122,74,0.08)] text-[var(--color-success)]",
+      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
   },
   rejected: {
     label: "Rechazado",
     className:
-      "border-[rgba(155,66,59,0.16)] bg-[rgba(155,66,59,0.08)] text-[var(--color-danger)]",
+      "border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)] text-[var(--color-danger)]",
   },
   cancelled: {
     label: "Cancelado",
     className:
-      "border-[rgba(111,102,93,0.16)] bg-[rgba(111,102,93,0.08)] text-[var(--color-muted)]",
+      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
   },
   preparing: {
     label: "En preparacion",
     className:
-      "border-[rgba(154,106,58,0.16)] bg-[rgba(154,106,58,0.08)] text-[var(--color-warning)]",
+      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
   },
   shipped: {
     label: "Enviado",
     className:
-      "border-[rgba(29,26,23,0.14)] bg-[rgba(29,26,23,0.06)] text-[var(--color-ink)]",
+      "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
   },
   delivered: {
     label: "Entregado",
     className:
-      "border-[rgba(61,122,74,0.16)] bg-[rgba(61,122,74,0.08)] text-[var(--color-success)]",
+      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
   },
   new: {
     label: "Nueva",
     className:
-      "border-[rgba(154,106,58,0.16)] bg-[rgba(154,106,58,0.08)] text-[var(--color-warning)]",
+      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
   },
   reviewed: {
     label: "Revisada",
     className:
-      "border-[rgba(29,26,23,0.14)] bg-[rgba(29,26,23,0.06)] text-[var(--color-ink)]",
+      "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
   },
   closed: {
     label: "Cerrada",
     className:
-      "border-[rgba(111,102,93,0.16)] bg-[rgba(111,102,93,0.08)] text-[var(--color-muted)]",
+      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
   },
 } as const;
 
@@ -63,7 +63,7 @@ export function StatusBadge({
     ({
       label: status,
       className:
-        "border-[rgba(29,26,23,0.14)] bg-[rgba(29,26,23,0.06)] text-[var(--color-ink)]",
+        "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
     } as const);
 
   return (

@@ -6,7 +6,7 @@ export function PriceTag({ value }: { value: number }) {
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
         Precio final
       </p>
-      <p className="mt-1 text-2xl font-semibold text-[var(--color-ink)]">
+      <p className="mt-1 text-2xl font-semibold text-[var(--color-price)]">
         {formatClp(value)}
       </p>
       <p className="mt-1 text-xs text-[var(--color-muted)]">IVA incluido</p>

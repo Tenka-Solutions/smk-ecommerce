@@ -17,20 +17,20 @@ export function CartSummary() {
             Resumen
           </h2>
         </div>
-        <span className="inline-flex rounded-full bg-[var(--color-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)]">
+        <span className="inline-flex rounded-full bg-[var(--color-badge)] px-3 py-1 text-xs font-semibold text-[var(--color-badge-foreground)]">
           {totalItems} producto{totalItems === 1 ? "" : "s"}
         </span>
       </div>
 
-      <div className="mt-5 rounded-[1.6rem] bg-[linear-gradient(135deg,var(--color-accent)_0%,var(--color-accent-strong)_100%)] px-5 py-5 text-white">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
+      <div className="mt-5 rounded-[1.6rem] bg-[linear-gradient(135deg,var(--color-primary)_0%,var(--color-primary-hover)_100%)] px-5 py-5 text-[var(--color-primary-foreground)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color-mix(in_srgb,var(--color-primary-foreground)_74%,transparent)]">
           Total a pagar
         </p>
         <div className="mt-3 flex items-end justify-between gap-4">
           <span className="text-3xl font-semibold sm:text-4xl">
             {formatClp(subtotal)}
           </span>
-          <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold text-white/90">
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--color-primary-foreground)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--color-primary-foreground)]">
             IVA incluido
           </span>
         </div>

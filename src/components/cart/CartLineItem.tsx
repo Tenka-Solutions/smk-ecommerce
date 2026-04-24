@@ -62,7 +62,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
         <button
           type="button"
           onClick={() => removeItem(item.id)}
-          className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-muted)] hover:border-[rgba(155,66,59,0.16)] hover:text-[var(--color-danger)]"
+          className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[color-mix(in_srgb,var(--color-danger)_32%,transparent)] hover:text-[var(--color-danger)]"
         >
           Quitar
         </button>

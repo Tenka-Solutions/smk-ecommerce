@@ -10,7 +10,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     <button
       type="button"
       onClick={toggleTheme}
-      className={`group inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--card)_74%,transparent)] text-[var(--color-ink)] shadow-[0_10px_28px_-22px_rgba(0,0,0,0.55)] hover:border-[var(--color-gold)] focus:outline-none focus:ring-4 focus:ring-[var(--ring)] ${className}`}
+      className={`group inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_74%,transparent)] text-[var(--color-foreground)] shadow-[0_10px_28px_-22px_rgba(0,0,0,0.55)] hover:border-[var(--color-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--ring)] ${className}`}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Modo claro" : "Modo oscuro"}
     >
@@ -54,4 +54,3 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     </button>
   );
 }
-

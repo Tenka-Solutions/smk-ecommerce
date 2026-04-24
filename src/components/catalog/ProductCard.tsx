@@ -7,7 +7,7 @@ import { AddToCartButton } from "@/components/catalog/AddToCartButton";
 
 export function ProductCard({ product }: { product: CatalogProduct }) {
   return (
-    <article className="flex h-full flex-col rounded-[1.8rem] border border-[var(--color-border)] bg-[var(--card)] p-4 text-[var(--card-foreground)] shadow-[var(--shadow-card)]">
+    <article className="flex h-full flex-col rounded-[1.8rem] border border-[var(--color-border)] bg-[var(--color-card)] p-4 text-[var(--color-card-foreground)] shadow-[var(--shadow-card)]">
       <div className="relative overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)]">
         <div className="absolute left-4 top-4 z-10">
           <AvailabilityBadge status={product.availabilityStatus} />
@@ -34,7 +34,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
         <div className="mt-4 grid gap-2 text-sm text-[var(--color-muted)]">
           {product.highlights.slice(0, 3).map((highlight) => (
             <div key={highlight} className="flex gap-2">
-              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-gold)]" />
+              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />
               <span>{highlight}</span>
             </div>
           ))}
