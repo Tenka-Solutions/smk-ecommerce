@@ -180,7 +180,7 @@ create table if not exists public.order_shipping_addresses (
   street text not null,
   number text not null,
   apartment text,
-  references text,
+  "references" text,
   delivery_notes text,
   created_at timestamptz not null default timezone('utc', now())
 );
