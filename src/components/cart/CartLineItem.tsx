@@ -39,7 +39,7 @@ export function CartLineItem({ item }: { item: CartItem }) {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-4">
-        <div className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-white">
+        <div className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--input)]">
           <button
             type="button"
             className="px-4 py-2 text-base text-[var(--color-muted)]"

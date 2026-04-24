@@ -6,7 +6,7 @@ export function AdminDataTable({
   rows: Array<Array<string | React.ReactNode>>;
 }) {
   return (
-    <div className="overflow-hidden rounded-[1.75rem] border border-[var(--color-border)] bg-white">
+    <div className="overflow-hidden rounded-[1.75rem] border border-[var(--color-border)] bg-[var(--card)]">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-[var(--color-border)] text-sm">
           <thead className="bg-[var(--color-surface-strong)]">

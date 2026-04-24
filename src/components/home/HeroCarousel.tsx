@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import Image from "next/image";
 import type { CatalogProduct } from "@/modules/catalog/types";
 import { useCartStore } from "@/lib/cart-store";
@@ -14,6 +14,7 @@ interface HeroCarouselProps {
 export function HeroCarousel({ products }: HeroCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ isDown: false, startX: 0, scrollLeft: 0, moved: false });
+  const [isDragging, setIsDragging] = useState(false);
 
   const addItem = useCartStore((s) => s.addItem);
 
@@ -21,6 +22,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
     const el = scrollRef.current;
     if (!el) return;
     dragRef.current = { isDown: true, startX: e.pageX, scrollLeft: el.scrollLeft, moved: false };
+    setIsDragging(true);
   }, []);
 
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -35,6 +37,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
 
   const onMouseUp = useCallback(() => {
     dragRef.current.isDown = false;
+    setIsDragging(false);
   }, []);
 
   function handleAdd(e: React.MouseEvent, product: CatalogProduct) {
@@ -55,7 +58,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseUp}
-        className={`flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [scroll-snap-type:x_mandatory] [mask-image:linear-gradient(to_right,black_82%,transparent_100%)] ${dragRef.current.isDown ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [scroll-snap-type:x_mandatory] [mask-image:linear-gradient(to_right,black_82%,transparent_100%)] ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
       >
         {products.map((product) => (
           <article

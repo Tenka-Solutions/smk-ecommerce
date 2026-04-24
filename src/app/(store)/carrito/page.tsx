@@ -69,7 +69,7 @@ export default function CartPage() {
       </div>
 
       {hasHydrated && items.length ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[rgba(255,253,250,0.96)] px-4 py-4 shadow-[0_-18px_40px_-28px_rgba(29,26,23,0.35)] backdrop-blur lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[color-mix(in_srgb,var(--card)_96%,transparent)] px-4 py-4 shadow-[0_-18px_40px_-28px_rgba(29,26,23,0.35)] backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">

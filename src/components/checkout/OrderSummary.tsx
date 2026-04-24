@@ -17,7 +17,7 @@ export function OrderSummary() {
         {items.map((item) => (
           <li
             key={item.id}
-            className="flex items-center gap-3 rounded-[1.4rem] border border-[var(--color-border)] bg-white/80 p-3"
+            className="flex items-center gap-3 rounded-[1.4rem] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--card)_86%,transparent)] p-3"
           >
             <div className="relative h-14 w-14 overflow-hidden rounded-[1rem] bg-[var(--color-surface-strong)]">
               <Image

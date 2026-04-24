@@ -7,8 +7,8 @@ import { AddToCartButton } from "@/components/catalog/AddToCartButton";
 
 export function ProductCard({ product }: { product: CatalogProduct }) {
   return (
-    <article className="flex h-full flex-col rounded-[1.8rem] border border-[var(--color-border)] bg-white p-4 shadow-[var(--shadow-card)]">
-      <div className="relative overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-page)]">
+    <article className="flex h-full flex-col rounded-[1.8rem] border border-[var(--color-border)] bg-[var(--card)] p-4 text-[var(--card-foreground)] shadow-[var(--shadow-card)]">
+      <div className="relative overflow-hidden rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)]">
         <div className="absolute left-4 top-4 z-10">
           <AvailabilityBadge status={product.availabilityStatus} />
         </div>

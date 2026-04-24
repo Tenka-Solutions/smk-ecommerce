@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useCartStore } from "@/lib/cart-store";
 import { publicNavigation } from "@/modules/shared/site";
 
@@ -12,7 +13,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)] backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)]/95 backdrop-blur">
       <div className="page-shell flex h-16 items-center justify-between gap-6 sm:h-18">
         {/* Logo */}
         <Link href="/" className="shrink-0">
@@ -43,6 +44,7 @@ export function SiteHeader() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          <ThemeToggle className="hidden border-[rgba(204,131,40,0.28)] bg-[rgba(255,255,255,0.06)] text-white sm:inline-flex" />
           <Link
             href="/login"
             className="hidden text-sm font-medium text-[rgba(255,255,255,0.6)] hover:text-white sm:inline-flex"
@@ -96,6 +98,10 @@ export function SiteHeader() {
       {/* Mobile menu */}
       {menuOpen && (
         <nav className="border-t border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)] px-4 pb-4 pt-2 lg:hidden">
+          <div className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-[rgba(255,255,255,0.7)] sm:hidden">
+            <span>Tema</span>
+            <ThemeToggle className="border-[rgba(204,131,40,0.28)] bg-[rgba(255,255,255,0.06)] text-white" />
+          </div>
           {publicNavigation.map((item) => {
             const isActive = pathname === item.href;
             return (

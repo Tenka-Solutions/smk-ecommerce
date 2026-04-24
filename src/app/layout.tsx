@@ -6,6 +6,21 @@ import { env } from "@/lib/env";
 import { siteConfig } from "@/modules/shared/site";
 import "./globals.css";
 
+const themeScript = `
+(function() {
+  try {
+    var storageKey = "hubcafe-theme";
+    var storedTheme = window.localStorage.getItem(storageKey);
+    var theme = storedTheme === "light" || storedTheme === "dark"
+      ? storedTheme
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.dataset.theme = theme;
+  } catch (error) {
+    document.documentElement.dataset.theme = "light";
+  }
+})();
+`;
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -47,7 +62,11 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${inter.variable} ${sora.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full bg-[var(--color-page)] font-[var(--font-sans)] text-[var(--color-ink)]">
         <AppProviders>{children}</AppProviders>
         <Toaster position="bottom-right" richColors />
