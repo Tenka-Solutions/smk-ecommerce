@@ -13,12 +13,12 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)]/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-header)_95%,transparent)] text-[var(--color-header-foreground)] backdrop-blur">
       <div className="page-shell flex h-16 items-center justify-between gap-6 sm:h-18">
         {/* Logo */}
         <Link href="/" className="shrink-0">
-          <span className="font-[var(--font-display)] text-xl font-semibold tracking-[-0.06em] text-white">
-            SMK <span className="text-[var(--color-gold)]">Vending</span>
+          <span className="font-[var(--font-display)] text-xl font-semibold tracking-[-0.06em] text-[var(--color-header-foreground)]">
+            SMK <span className="text-[var(--color-primary)]">Vending</span>
           </span>
         </Link>
 
@@ -32,8 +32,8 @@ export function SiteHeader() {
                 href={item.href}
                 className={`text-sm font-medium transition-colors ${
                   isActive
-                    ? "text-[var(--color-gold)]"
-                    : "text-[rgba(255,255,255,0.8)] hover:text-white"
+                    ? "text-[var(--color-primary)]"
+                    : "text-[var(--color-header-muted)] hover:text-[var(--color-header-foreground)]"
                 }`}
               >
                 {item.label}
@@ -44,16 +44,16 @@ export function SiteHeader() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
-          <ThemeToggle className="hidden border-[rgba(204,131,40,0.28)] bg-[rgba(255,255,255,0.06)] text-white sm:inline-flex" />
+          <ThemeToggle className="hidden border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_70%,transparent)] text-[var(--color-header-foreground)] sm:inline-flex" />
           <Link
             href="/login"
-            className="hidden text-sm font-medium text-[rgba(255,255,255,0.6)] hover:text-white sm:inline-flex"
+            className="hidden text-sm font-medium text-[var(--color-header-muted)] hover:text-[var(--color-header-foreground)] sm:inline-flex"
           >
             Mi cuenta
           </Link>
           <Link
             href="/carrito"
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(204,131,40,0.3)] bg-[rgba(204,131,40,0.1)] text-[var(--color-gold)]"
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-primary)_12%,transparent)] text-[var(--color-primary)]"
             aria-label="Carrito"
           >
             <svg
@@ -71,7 +71,7 @@ export function SiteHeader() {
               />
             </svg>
             {totalItems > 0 ? (
-              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-gold)] px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[10px] font-bold text-[var(--color-primary-foreground)]">
                 {totalItems > 99 ? "99+" : totalItems}
               </span>
             ) : null}
@@ -81,7 +81,7 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--color-header-foreground)] lg:hidden"
             aria-label="Menú"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -97,10 +97,10 @@ export function SiteHeader() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <nav className="border-t border-[rgba(228,195,173,0.08)] bg-[var(--color-dark)] px-4 pb-4 pt-2 lg:hidden">
-          <div className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-[rgba(255,255,255,0.7)] sm:hidden">
+        <nav className="border-t border-[var(--color-border)] bg-[var(--color-header)] px-4 pb-4 pt-2 text-[var(--color-header-foreground)] lg:hidden">
+          <div className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-[var(--color-header-muted)] sm:hidden">
             <span>Tema</span>
-            <ThemeToggle className="border-[rgba(204,131,40,0.28)] bg-[rgba(255,255,255,0.06)] text-white" />
+            <ThemeToggle className="border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_70%,transparent)] text-[var(--color-header-foreground)]" />
           </div>
           {publicNavigation.map((item) => {
             const isActive = pathname === item.href;
@@ -111,8 +111,8 @@ export function SiteHeader() {
                 onClick={() => setMenuOpen(false)}
                 className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
                   isActive
-                    ? "text-[var(--color-gold)]"
-                    : "text-[rgba(255,255,255,0.7)] hover:text-white"
+                    ? "text-[var(--color-primary)]"
+                    : "text-[var(--color-header-muted)] hover:text-[var(--color-header-foreground)]"
                 }`}
               >
                 {item.label}
@@ -122,7 +122,7 @@ export function SiteHeader() {
           <Link
             href="/login"
             onClick={() => setMenuOpen(false)}
-            className="mt-2 block rounded-lg px-3 py-2.5 text-sm font-medium text-[rgba(255,255,255,0.5)] hover:text-white"
+            className="mt-2 block rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-header-muted)] hover:text-[var(--color-header-foreground)]"
           >
             Mi cuenta
           </Link>
