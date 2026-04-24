@@ -26,19 +26,45 @@ function isValidRut(rut: string) {
   return verifier === expected;
 }
 
-export const checkoutCustomerSchema = z.object({
-  fullName: z.string().min(3, "Ingresa tu nombre completo"),
-  email: z.string().email("Ingresa un correo válido"),
-  phone: z.string().regex(phoneRegex, "Ingresa un teléfono chileno válido"),
-  rut: z
-    .string()
-    .trim()
-    .optional()
-    .refine((value) => !value || isValidRut(value), "RUT inválido"),
-  companyName: z.string().trim().optional(),
-  businessName: z.string().trim().optional(),
-  businessActivity: z.string().trim().optional(),
-});
+export const checkoutCustomerSchema = z
+  .object({
+    documentType: z.enum(["boleta", "factura"]).default("boleta"),
+    fullName: z.string().min(3, "Ingresa tu nombre completo"),
+    email: z.string().email("Ingresa un correo válido"),
+    phone: z.string().regex(phoneRegex, "Ingresa un teléfono chileno válido"),
+    rut: z
+      .string()
+      .trim()
+      .optional()
+      .refine((value) => !value || isValidRut(value), "RUT inválido"),
+    companyName: z.string().trim().optional(),
+    businessName: z.string().trim().optional(),
+    businessActivity: z.string().trim().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.documentType !== "factura") return;
+    if (!data.rut || !isValidRut(data.rut)) {
+      ctx.addIssue({
+        path: ["rut"],
+        code: z.ZodIssueCode.custom,
+        message: "RUT requerido para factura",
+      });
+    }
+    if (!data.businessName?.trim()) {
+      ctx.addIssue({
+        path: ["businessName"],
+        code: z.ZodIssueCode.custom,
+        message: "Razón social requerida para factura",
+      });
+    }
+    if (!data.businessActivity?.trim()) {
+      ctx.addIssue({
+        path: ["businessActivity"],
+        code: z.ZodIssueCode.custom,
+        message: "Giro requerido para factura",
+      });
+    }
+  });
 
 export const checkoutShippingSchema = z.object({
   region: z.string().min(2, "Selecciona una región"),

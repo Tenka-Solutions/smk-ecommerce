@@ -1,8 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { CategoriesGrid } from "@/components/home/CategoriesGrid";
 import { TrustSignals } from "@/components/home/TrustSignals";
-import { CtaBanner } from "@/components/home/CtaBanner";
+
 import { getCatalogCategories, getFeaturedCatalogProducts } from "@/modules/catalog/repository";
 
 export default async function HomePage() {
@@ -13,6 +14,7 @@ export default async function HomePage() {
 
   return (
     <div>
+      
       {/* Hero */}
       <section className="bg-[var(--color-hero)] text-[var(--color-hero-foreground)]">
         <div className="page-shell pb-12 pt-8 sm:pb-16 sm:pt-12">
@@ -51,8 +53,6 @@ export default async function HomePage() {
       {/* Trust Signals */}
       <TrustSignals />
 
-      {/* CTA Banner */}
-      <CtaBanner />
     </div>
   );
 }
