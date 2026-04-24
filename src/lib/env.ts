@@ -24,7 +24,7 @@ export const env = {
     "http://localhost:3000/api/payments/getnet/webhook",
   flowApiKey: process.env.FLOW_API_KEY ?? "",
   flowSecretKey: process.env.FLOW_SECRET_KEY ?? "",
-  flowApiUrl: process.env.FLOW_API_URL ?? "https://sandbox.flow.cl/api",
+  flowApiUrl: process.env.FLOW_API_URL ?? "https://flow.cl/api",
   flowReturnUrl:
     process.env.FLOW_RETURN_URL ??
     "http://localhost:3000/api/payments/flow/return",

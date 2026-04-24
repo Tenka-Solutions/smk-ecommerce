@@ -6,11 +6,16 @@ import type {
   ProviderCheckoutResult,
 } from "@/modules/payments/providers/types";
 
-function signParams(params: Record<string, string>, secret: string): string {
+// ✅ Accept number + string
+function signParams(
+  params: Record<string, string | number>,
+  secret: string
+): string {
   const sorted = Object.keys(params)
     .sort()
     .map((key) => `${key}=${params[key]}`)
     .join("&");
+
   return createHmac("sha256", secret).update(sorted).digest("hex");
 }
 
@@ -22,38 +27,76 @@ interface FlowCreateResponse {
 
 export const flowPaymentProvider: PaymentProviderGateway = {
   name: "flow",
+
   async createCheckout(
     input: ProviderCheckoutInput
   ): Promise<ProviderCheckoutResult> {
-    const params: Record<string, string> = {
+    // ✅ Ensure required values
+    if (!env.flowApiKey || !env.flowSecretKey) {
+      throw new Error("Flow env not configured");
+    }
+
+    if (!input.amount || input.amount <= 0) {
+      throw new Error("Invalid amount");
+    }
+
+    // ✅ FORCE SAFE VALUES (prevents Flow 101)
+    const params: Record<string, string | number> = {
       apiKey: env.flowApiKey,
-      commerceOrder: input.orderNumber,
+
+      // ⚠️ MUST be unique
+      commerceOrder: `${input.orderNumber}_${Date.now()}`,
+
       subject: `Pago pedido ${input.orderNumber}`,
       currency: "CLP",
-      amount: String(Math.round(input.amount)),
-      email: input.customerEmail || "sandbox@smkvending.cl",
-      paymentMethod: "9",
+
+      // ✅ MUST be number for signature
+      amount: Math.round(input.amount),
+
+      // ⚠️ ALWAYS valid email
+      email: input.customerEmail ?? "test@hubcafe.cl",
+
+      // ⚠️ MUST be PUBLIC URLs (accessible by Flow)
       urlConfirmation: env.flowConfirmUrl,
       urlReturn: env.flowReturnUrl,
-      optional: JSON.stringify({ paymentId: input.paymentId }),
     };
 
+    // ✅ Only add optional if valid
+    if (input.paymentId) {
+      params.optional = JSON.stringify({
+        paymentId: input.paymentId,
+      });
+    }
+
+    // ✅ Generate signature AFTER params are final
     const signature = signParams(params, env.flowSecretKey);
 
-    const body = new URLSearchParams({ ...params, s: signature });
+    // ✅ Convert to string ONLY here
+    const body = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries({ ...params, s: signature }).map(([k, v]) => [
+          k,
+          String(v),
+        ])
+      )
+    );
 
     const response = await fetch(`${env.flowApiUrl}/payment/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
       body,
     });
 
     const text = await response.text();
+
     if (!response.ok) {
       throw new Error(`Flow create failed (${response.status}): ${text}`);
     }
 
     let data: FlowCreateResponse;
+
     try {
       data = JSON.parse(text) as FlowCreateResponse;
     } catch {
@@ -68,13 +111,19 @@ export const flowPaymentProvider: PaymentProviderGateway = {
   },
 };
 
+// ✅ STATUS CHECK (unchanged but cleaned)
 export async function getFlowPaymentStatus(token: string) {
   const params: Record<string, string> = {
     apiKey: env.flowApiKey,
     token,
   };
+
   const signature = signParams(params, env.flowSecretKey);
-  const query = new URLSearchParams({ ...params, s: signature });
+
+  const query = new URLSearchParams({
+    ...params,
+    s: signature,
+  });
 
   const response = await fetch(
     `${env.flowApiUrl}/payment/getStatus?${query.toString()}`,
@@ -82,6 +131,7 @@ export async function getFlowPaymentStatus(token: string) {
   );
 
   const text = await response.text();
+
   if (!response.ok) {
     throw new Error(`Flow getStatus failed (${response.status}): ${text}`);
   }

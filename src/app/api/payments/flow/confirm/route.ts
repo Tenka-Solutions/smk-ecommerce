@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabasePaymentRepository } from "@/modules/payments/infra/supabase-payment-repository";
 import type { PaymentStatus } from "@/modules/payments/domain/payment";
 
+// ✅ Map Flow status → your domain
 function mapFlowStatus(code: number): PaymentStatus {
   if (code === 2) return "paid";
   if (code === 3 || code === 4) return "failed";
@@ -11,38 +12,80 @@ function mapFlowStatus(code: number): PaymentStatus {
 }
 
 export async function POST(request: NextRequest) {
-  const form = await request.formData();
-  const token = form.get("token");
-  if (typeof token !== "string" || !token) {
+  let token: string | null = null;
+
+  // ✅ Try to read token from formData (Flow may send it this way)
+  try {
+    const form = await request.formData();
+    const formToken = form.get("token");
+    if (typeof formToken === "string") {
+      token = formToken;
+    }
+  } catch {
+    // ignore
+  }
+
+  // ✅ Fallback: read from query params
+  if (!token) {
+    const url = new URL(request.url);
+    const queryToken = url.searchParams.get("token");
+    if (queryToken) {
+      token = queryToken;
+    }
+  }
+
+  // ❌ No token → reject
+  if (!token) {
     return NextResponse.json({ error: "token missing" }, { status: 400 });
   }
 
   try {
     const status = await getFlowPaymentStatus(token);
+
     const admin = createSupabaseAdminClient();
     if (!admin) {
-      return NextResponse.json({ ok: true, skipped: "supabase-unconfigured" });
+      return NextResponse.json({
+        ok: true,
+        skipped: "supabase-unconfigured",
+      });
     }
 
     const repo = createSupabasePaymentRepository(admin);
+
     let paymentId: string | null = null;
+
     try {
-      const optional = status.optional ? JSON.parse(status.optional) : null;
+      const optional = status.optional
+        ? JSON.parse(status.optional)
+        : null;
+
       paymentId = optional?.paymentId ?? null;
     } catch {
       paymentId = null;
     }
 
     if (!paymentId) {
-      return NextResponse.json({ ok: true, skipped: "no-payment-id" });
+      return NextResponse.json({
+        ok: true,
+        skipped: "no-payment-id",
+      });
     }
 
-    await repo.updateStatus(paymentId, mapFlowStatus(status.status), token);
+    await repo.updateStatus(
+      paymentId,
+      mapFlowStatus(status.status),
+      token
+    );
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "flow confirm failed" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "flow confirm failed",
+      },
       { status: 500 }
     );
   }
