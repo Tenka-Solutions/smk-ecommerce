@@ -27,11 +27,11 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
         <h3 className="text-xl font-semibold leading-tight text-[var(--color-ink)]">
           {product.name}
         </h3>
-        <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
+        <p className="mt-3 text-sm leading-7 text-[var(--color-muted-foreground)]">
           {product.shortDescription}
         </p>
 
-        <div className="mt-4 grid gap-2 text-sm text-[var(--color-muted)]">
+        <div className="mt-4 grid gap-2 text-sm text-[var(--color-muted-foreground)]">
           {product.highlights.slice(0, 3).map((highlight) => (
             <div key={highlight} className="flex gap-2">
               <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />

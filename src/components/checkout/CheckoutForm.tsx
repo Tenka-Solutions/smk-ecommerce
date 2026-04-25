@@ -162,8 +162,8 @@ export function CheckoutForm({
             onClick={() => setField("documentType", "boleta")}
             className={`rounded-full px-4 py-1.5 transition ${
               form.documentType === "boleta"
-                ? "bg-[var(--color-ink)] text-[var(--color-surface)]"
-                : "text-[var(--color-muted)]"
+                ? "bg-[#F2A359] text-white"
+                : "text-[var(--color-muted-foreground)]"
             }`}
           >
             Boleta
@@ -173,8 +173,8 @@ export function CheckoutForm({
             onClick={() => setField("documentType", "factura")}
             className={`rounded-full px-4 py-1.5 transition ${
               form.documentType === "factura"
-                ? "bg-[var(--color-ink)] text-[var(--color-surface)]"
-                : "text-[var(--color-muted)]"
+                ? "bg-[#F2A359] text-white"
+                : "text-[var(--color-muted-foreground)]"
             }`}
           >
             Factura

@@ -110,8 +110,8 @@ export function EmailAuthForm() {
           onClick={() => setMode("signin")}
           className={`rounded-full px-4 py-1.5 transition ${
             mode === "signin"
-              ? "bg-[var(--color-ink)] text-[var(--color-surface)]"
-              : "text-[var(--color-muted)]"
+              ? "bg-[#F2A359] text-white"
+              : "text-[var(--color-muted-foreground)]"
           }`}
         >
           Iniciar sesión
@@ -121,8 +121,8 @@ export function EmailAuthForm() {
           onClick={() => setMode("signup")}
           className={`rounded-full px-4 py-1.5 transition ${
             mode === "signup"
-              ? "bg-[var(--color-ink)] text-[var(--color-surface)]"
-              : "text-[var(--color-muted)]"
+              ? "bg-[#F2A359] text-white"
+              : "text-[var(--color-muted-foreground)]"
           }`}
         >
           Crear cuenta

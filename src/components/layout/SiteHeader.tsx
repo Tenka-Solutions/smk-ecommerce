@@ -18,7 +18,7 @@ export function SiteHeader() {
         {/* Logo */}
         <Link href="/" className="shrink-0">
           <span className="font-[var(--font-display)] text-xl font-semibold tracking-[-0.06em] text-[var(--color-header-foreground)]">
-            SMK <span className="text-[var(--color-primary)]">Vending</span>
+            HUB<span className="text-[var(--color-primary)]">Cafe</span>
           </span>
         </Link>
 
