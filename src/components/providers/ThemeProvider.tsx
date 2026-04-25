@@ -49,7 +49,7 @@ function resolveTheme(theme: Theme): ResolvedTheme {
 }
 
 function applyTheme(theme: ResolvedTheme) {
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.setAttribute("data-theme", theme);
 }
 
 function subscribeToThemeChanges(onStoreChange: () => void) {

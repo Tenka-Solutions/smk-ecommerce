@@ -14,9 +14,9 @@ const themeScript = `
     var theme = storedTheme === "light" || storedTheme === "dark"
       ? storedTheme
       : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    document.documentElement.dataset.theme = theme;
+    document.documentElement.setAttribute("data-theme", theme);
   } catch (error) {
-    document.documentElement.dataset.theme = "light";
+    document.documentElement.setAttribute("data-theme", "light");
   }
 })();
 `;
