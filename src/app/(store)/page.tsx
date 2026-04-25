@@ -6,6 +6,21 @@ import { TrustSignals } from "@/components/home/TrustSignals";
 
 import { getCatalogCategories, getFeaturedCatalogProducts } from "@/modules/catalog/repository";
 
+const desktopBanners = [
+  {
+    src: "/banner_hubcafe_strip.png",
+    alt: "Despacho a todo Chile, precios con IVA incluido y asesoría personalizada",
+  },
+  {
+    src: "/banner_hubcafe_strip.png",
+    alt: "Despacho a todo Chile, precios con IVA incluido y asesoría personalizada",
+  },
+  {
+    src: "/banner_hubcafe_strip.png",
+    alt: "Despacho a todo Chile, precios con IVA incluido y asesoría personalizada",
+  },
+];
+
 export default async function HomePage() {
   const [categories, featuredProducts] = await Promise.all([
     getCatalogCategories(),
@@ -14,6 +29,22 @@ export default async function HomePage() {
 
   return (
     <div>
+      <section className="hidden w-full overflow-x-auto bg-black [scroll-snap-type:x_mandatory] [scrollbar-width:none] [-ms-overflow-style:none] lg:block [&::-webkit-scrollbar]:hidden" aria-label="Beneficios de compra">
+        <div className="flex w-max">
+          {desktopBanners.map((banner, index) => (
+            <Image
+              key={`${banner.src}-${index}`}
+              src={banner.src}
+              alt={banner.alt}
+              width={1818}
+              height={125}
+              priority={index === 0}
+              sizes="100vw"
+              className="block h-auto w-screen shrink-0 snap-start"
+            />
+          ))}
+        </div>
+      </section>
       
       {/* Hero */}
       <section className="bg-[var(--color-hero)] text-[var(--color-hero-foreground)]">
