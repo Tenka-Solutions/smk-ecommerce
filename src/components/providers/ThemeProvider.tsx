@@ -70,7 +70,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore<Theme>(
     subscribeToThemeChanges,
     getStoredTheme,
-    () => "system"
+    () => "light"
   );
   const resolvedTheme = resolveTheme(theme);
 

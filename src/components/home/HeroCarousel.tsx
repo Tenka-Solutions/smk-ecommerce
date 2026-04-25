@@ -1,69 +1,34 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
 import Image from "next/image";
-import type { CatalogProduct } from "@/modules/catalog/types";
-import { useCartStore } from "@/lib/cart-store";
-import { formatClp } from "@/lib/format/currency";
 import { toast } from "sonner";
+import { formatClp } from "@/lib/format/currency";
+import { useCartStore } from "@/lib/cart-store";
+import type { CatalogProduct } from "@/modules/catalog/types";
 
 interface HeroCarouselProps {
   products: CatalogProduct[];
 }
 
 export function HeroCarousel({ products }: HeroCarouselProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef({ isDown: false, startX: 0, scrollLeft: 0, moved: false });
-  const [isDragging, setIsDragging] = useState(false);
+  const addItem = useCartStore((store) => store.addItem);
 
-  const addItem = useCartStore((s) => s.addItem);
+  if (!products.length) return null;
 
-  const onMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    dragRef.current = { isDown: true, startX: e.pageX, scrollLeft: el.scrollLeft, moved: false };
-    setIsDragging(true);
-  }, []);
+  const carouselProducts = [...products, ...products];
 
-  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!dragRef.current.isDown) return;
-    e.preventDefault();
-    const el = scrollRef.current;
-    if (!el) return;
-    const dx = e.pageX - dragRef.current.startX;
-    if (Math.abs(dx) > 4) dragRef.current.moved = true;
-    el.scrollLeft = dragRef.current.scrollLeft - dx;
-  }, []);
-
-  const onMouseUp = useCallback(() => {
-    dragRef.current.isDown = false;
-    setIsDragging(false);
-  }, []);
-
-  function handleAdd(e: React.MouseEvent, product: CatalogProduct) {
-    if (dragRef.current.moved) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
+  function handleAdd(product: CatalogProduct) {
     addItem(product);
     toast.success(`${product.name} agregado al carrito`);
   }
 
   return (
-    <div className="mt-8">
-      <div
-        ref={scrollRef}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-        className={`flex gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden [scroll-snap-type:x_mandatory] [mask-image:linear-gradient(to_right,black_82%,transparent_100%)] ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-      >
-        {products.map((product) => (
+    <div className="mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent_0%,black_6%,black_92%,transparent_100%)]">
+      <div className="hero-carousel-track flex w-max gap-4 pb-2">
+        {carouselProducts.map((product, index) => (
           <article
-            key={product.id}
-            className="min-w-[220px] shrink-0 snap-start rounded-[1.25rem] border border-[var(--color-hero-border)] bg-[var(--color-hero-card)] p-3 sm:min-w-[240px]"
+            key={`${product.id}-${index}`}
+            className="w-[220px] shrink-0 rounded-[1.25rem] border border-[var(--color-hero-border)] bg-[var(--color-hero-card)] p-3 sm:w-[240px]"
           >
             <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[var(--color-surface-soft)]">
               <Image
@@ -84,7 +49,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
               </p>
               <button
                 type="button"
-                onClick={(e) => handleAdd(e, product)}
+                onClick={() => handleAdd(product)}
                 className="button-gold mt-3 w-full px-4 py-2 text-xs"
               >
                 Agregar
@@ -94,7 +59,7 @@ export function HeroCarousel({ products }: HeroCarouselProps) {
         ))}
       </div>
       <p className="mt-3 text-center text-xs text-[var(--color-hero-muted)]">
-        ← arrastra para ver más →
+        Carrusel de productos
       </p>
     </div>
   );

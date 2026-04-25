@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Sora } from "next/font/google";
 import { Toaster } from "sonner";
 import { AppProviders } from "@/components/providers/AppProviders";
@@ -64,10 +65,12 @@ export default function RootLayout({
       className={`${inter.variable} ${sora.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="min-h-full bg-[var(--color-page)] font-[var(--font-sans)] text-[var(--color-ink)]">
+        <Script
+          id="theme-script"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
         <AppProviders>{children}</AppProviders>
         <Toaster position="bottom-right" richColors />
       </body>

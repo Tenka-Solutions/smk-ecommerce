@@ -249,6 +249,30 @@ img {
   user-select: none;
 }
 
+.hero-carousel-track {
+  animation: hero-carousel-scroll 36s linear infinite;
+}
+
+.hero-carousel-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-carousel-track {
+    animation: none;
+  }
+}
+
+@keyframes hero-carousel-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - 0.5rem));
+  }
+}
+
 .page-shell {
   margin-inline: auto;
   width: min(100%, 80rem);
