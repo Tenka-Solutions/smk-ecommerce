@@ -58,7 +58,7 @@ export function CartSummary() {
       </div>
 
       <p className="mt-5 text-sm leading-7 text-[var(--color-muted)]">
-        El despacho se confirma despues de la compra segun cobertura y comuna.
+        El despacho se confirma después de la compra según cobertura y comuna.
       </p>
 
       <Link
@@ -69,7 +69,7 @@ export function CartSummary() {
       </Link>
 
       <p className="mt-3 text-center text-xs text-[var(--color-muted)]">
-        Pago seguro y validado antes de la confirmacion final.
+        Pago seguro y validado antes de la confirmación final.
       </p>
     </aside>
   );

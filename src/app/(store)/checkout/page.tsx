@@ -11,7 +11,7 @@ export default async function CheckoutPage() {
       <div className="max-w-3xl">
         <p className="section-kicker">Checkout</p>
         <h1 className="mt-3 text-4xl font-semibold">Finaliza tu compra</h1>
-        <p className="mt-4 text-base leading-8 text-[var(--color-muted)]">
+        <p className="mt-4 text-base leading-8 text-[var(--color-placeholder)]">
           Compra como invitado o continúa con tu cuenta. El despacho se confirma
           después del pago.
         </p>

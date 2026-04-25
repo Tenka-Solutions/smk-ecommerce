@@ -16,7 +16,7 @@ export const siteConfig = {
   contact: {
     salesEmail: "ventas@smkvending.cl",
     supportEmail: "ventas@smkvending.cl",
-    phone: "+56 9 1234 5678",
+    phone: "",
     region: "Chile",
   },
   trustSignals: [

@@ -58,7 +58,7 @@ export default async function HomePage() {
                 Máquinas de café, café e insumos para tu negocio
               </h1>
               <p className="mt-4 text-sm leading-relaxed text-[var(--color-hero-muted)] sm:text-base">
-                Precios con IVA incluido · Despacho Chile
+                Precios con IVA incluido · Despacho a todo Chile
               </p>
             </div>
             <div className="flex shrink-0 gap-3">

@@ -148,7 +148,7 @@ export function CheckoutForm({
       <div>
         <p className="section-kicker">Datos del cliente</p>
         <h2 className="mt-3 text-2xl font-semibold">Checkout</h2>
-        <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
+        <p className="mt-3 text-sm leading-7 text-[var(--color-placeholder)]">
           Puedes comprar como invitado o continuar con tu cuenta. Los precios
           mostrados ya incluyen IVA.
         </p>

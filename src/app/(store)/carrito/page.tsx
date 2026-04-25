@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CartLineItem } from "@/components/cart/CartLineItem";
 import { CartSummary } from "@/components/cart/CartSummary";
+import { CartQuoteSection } from "@/components/cart/CartQuoteSection";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { formatClp } from "@/lib/format/currency";
 import { useCartStore } from "@/lib/cart-store";
@@ -21,7 +22,7 @@ export default function CartPage() {
         </h1>
         <p className="mt-3 text-sm leading-7 text-[var(--color-muted)] sm:mt-4 sm:text-base sm:leading-8">
           Revisa tus productos antes de continuar. Los precios ya incluyen IVA
-          y el despacho se confirma despues.
+          y el despacho se confirma después.
         </p>
       </div>
 
@@ -58,14 +59,18 @@ export default function CartPage() {
               <CartSummary />
             </div>
           </div>
-        ) : (
+        ) : null}
+
+        {hasHydrated && items.length ? <CartQuoteSection /> : null}
+
+        {hasHydrated && !items.length ? (
           <EmptyState
-            title="Tu carrito esta vacio"
-            description="Explora el catalogo y agrega productos para continuar con tu compra."
+            title="Tu carrito está vacío"
+            description="Explora el catálogo y agrega productos para continuar con tu compra."
             actionHref="/tienda"
             actionLabel="Ir a la tienda"
           />
-        )}
+        ) : null}
       </div>
 
       {hasHydrated && items.length ? (

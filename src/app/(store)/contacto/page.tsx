@@ -11,10 +11,6 @@ export default function ContactPage() {
               <p className="mt-2">ventas@smkvending.cl</p>
             </div>
             <div className="surface-card rounded-[1.5rem] p-5">
-              <p className="font-semibold text-[var(--color-ink)]">Teléfono</p>
-              <p className="mt-2">+56 9 1234 5678</p>
-            </div>
-            <div className="surface-card rounded-[1.5rem] p-5">
               <p className="font-semibold text-[var(--color-ink)]">Cobertura</p>
               <p className="mt-2">Despachos y coordinación comercial en Chile.</p>
             </div>
