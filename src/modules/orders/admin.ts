@@ -23,6 +23,42 @@ export type AdminOrderStatus = (typeof ADMIN_ORDER_STATUSES)[number];
 
 export type AdminArchivedFilter = "active" | "archived" | "all";
 
+export const ADMIN_ORDER_DELETE_CONFIRMATION = "ELIMINAR";
+
+const DELETABLE_ORDER_STATUSES = ["pending", "cancelled"] as const;
+
+const PROCESSED_ORDER_STATUSES = [
+  "processing",
+  "preparing",
+  "shipped",
+  "completed",
+  "delivered",
+] as const;
+
+const CONFIRMED_PAYMENT_STATUSES = [
+  "paid",
+  "approved",
+  "confirmed",
+  "captured",
+  "completed",
+  "succeeded",
+  "success",
+] as const;
+
+type AdminOrderDeleteBlockReason =
+  | "eligible"
+  | "invalidConfirmation"
+  | "paymentConfirmed"
+  | "processedOrder"
+  | "notDeletableStatus"
+  | "criticalRelations";
+
+export interface AdminOrderDeletionEligibility {
+  canDelete: boolean;
+  reason: AdminOrderDeleteBlockReason;
+  message: string;
+}
+
 export interface AdminOrderFilters {
   query?: string;
   orderStatus?: AdminOrderStatus;
@@ -61,6 +97,7 @@ export interface AdminOrderDetail extends AdminOrderListItem {
   paymentAttemptReference: string | null;
   paymentAttemptStatus: PaymentStatus | null;
   paymentTransactionId: string | null;
+  hasConfirmedPaymentAttempt: boolean;
   items: Array<{
     productId: string | null;
     sku: string | null;
@@ -150,6 +187,60 @@ function toPaymentStatus(value: unknown): PaymentStatus {
     : "pending";
 }
 
+function normalizeStatusValue(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function isConfirmedPaymentStatus(value: unknown) {
+  const normalized = normalizeStatusValue(value);
+  return CONFIRMED_PAYMENT_STATUSES.includes(
+    normalized as (typeof CONFIRMED_PAYMENT_STATUSES)[number]
+  );
+}
+
+function payloadHasConfirmedPaymentStatus(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const stack: unknown[] = [value];
+
+  while (stack.length) {
+    const current = stack.pop();
+
+    if (!current || typeof current !== "object") {
+      continue;
+    }
+
+    for (const [key, entry] of Object.entries(
+      current as Record<string, unknown>
+    )) {
+      if (
+        typeof entry === "string" &&
+        key.toLowerCase().includes("status") &&
+        isConfirmedPaymentStatus(entry)
+      ) {
+        return true;
+      }
+
+      if (entry && typeof entry === "object") {
+        stack.push(entry);
+      }
+    }
+  }
+
+  return false;
+}
+
+function hasConfirmedPaymentAttempt(attempt: Record<string, unknown>) {
+  return (
+    isConfirmedPaymentStatus(attempt.status) ||
+    payloadHasConfirmedPaymentStatus(attempt.response_payload)
+  );
+}
+
 function toIsoStart(date: string) {
   return `${date}T00:00:00.000Z`;
 }
@@ -183,13 +274,15 @@ function mapOrderDetail({
   order,
   address,
   items,
-  paymentAttempt,
+  paymentAttempts,
 }: {
   order: Record<string, unknown>;
   address: Record<string, unknown> | null;
   items: Array<Record<string, unknown>>;
-  paymentAttempt: Record<string, unknown> | null;
+  paymentAttempts: Array<Record<string, unknown>>;
 }): AdminOrderDetail {
+  const paymentAttempt = paymentAttempts[0] ?? null;
+
   return {
     ...mapOrder(order),
     businessName: toStringOrNull(order.business_name),
@@ -210,6 +303,7 @@ function mapOrderDetail({
     paymentTransactionId: paymentAttempt
       ? toStringOrNull(paymentAttempt.provider_transaction_id)
       : null,
+    hasConfirmedPaymentAttempt: paymentAttempts.some(hasConfirmedPaymentAttempt),
     items: items.map((item) => ({
       productId: toStringOrNull(item.product_id),
       sku: toStringOrNull(item.sku_snapshot),
@@ -253,6 +347,67 @@ function applySearch(orders: AdminOrderListItem[], query?: string) {
 
 export function isArchiveableOrderStatus(status: OrderStatus) {
   return ["pending", "cancelled", "rejected"].includes(status);
+}
+
+export function getAdminOrderDeletionEligibility({
+  orderStatus,
+  paymentStatus,
+  paymentAttemptStatus,
+  hasConfirmedPaymentAttempt: hasConfirmedAttempt = false,
+}: {
+  orderStatus: OrderStatus | string;
+  paymentStatus: PaymentStatus | string;
+  paymentAttemptStatus?: PaymentStatus | string | null;
+  hasConfirmedPaymentAttempt?: boolean;
+}): AdminOrderDeletionEligibility {
+  const normalizedOrderStatus = normalizeStatusValue(orderStatus);
+
+  if (
+    normalizedOrderStatus === "paid" ||
+    isConfirmedPaymentStatus(paymentStatus) ||
+    isConfirmedPaymentStatus(paymentAttemptStatus) ||
+    hasConfirmedAttempt
+  ) {
+    return {
+      canDelete: false,
+      reason: "paymentConfirmed",
+      message:
+        "No se puede eliminar porque tiene pago confirmado. Puedes archivarlo para ocultarlo del panel principal.",
+    };
+  }
+
+  if (
+    PROCESSED_ORDER_STATUSES.includes(
+      normalizedOrderStatus as (typeof PROCESSED_ORDER_STATUSES)[number]
+    )
+  ) {
+    return {
+      canDelete: false,
+      reason: "processedOrder",
+      message:
+        "No se puede eliminar porque ya fue procesado. Puedes archivarlo para ocultarlo del panel principal.",
+    };
+  }
+
+  if (
+    !DELETABLE_ORDER_STATUSES.includes(
+      normalizedOrderStatus as (typeof DELETABLE_ORDER_STATUSES)[number]
+    )
+  ) {
+    return {
+      canDelete: false,
+      reason: "notDeletableStatus",
+      message:
+        "Solo se pueden eliminar definitivamente pedidos pendientes o cancelados. Puedes archivarlo para ocultarlo del panel principal.",
+    };
+  }
+
+  return {
+    canDelete: true,
+    reason: "eligible",
+    message:
+      "Este pedido parece elegible para eliminacion definitiva porque no tiene pago confirmado y esta pendiente o cancelado.",
+  };
 }
 
 export async function getAdminOrdersPageData(
@@ -342,7 +497,7 @@ export async function getAdminOrderDetail(orderId: string) {
     { data: orderData, error: orderError },
     { data: addressData },
     { data: itemsData },
-    { data: paymentAttemptData },
+    { data: paymentAttemptsData },
   ] = await Promise.all([
     client.from("orders").select("*").eq("id", orderId).maybeSingle(),
     client
@@ -360,8 +515,7 @@ export async function getAdminOrderDetail(orderId: string) {
       .select("*")
       .eq("order_id", orderId)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(20),
   ]);
 
   if (orderError || !orderData) {
@@ -372,8 +526,9 @@ export async function getAdminOrderDetail(orderId: string) {
     order: orderData as Record<string, unknown>,
     address: (addressData as Record<string, unknown> | null) ?? null,
     items: (itemsData ?? []) as Array<Record<string, unknown>>,
-    paymentAttempt:
-      (paymentAttemptData as Record<string, unknown> | null) ?? null,
+    paymentAttempts: (paymentAttemptsData ?? []) as Array<
+      Record<string, unknown>
+    >,
   });
 }
 
@@ -485,5 +640,109 @@ export async function setAdminOrderArchived({
   return {
     id: String(order.id),
     orderNumber: String(order.order_number ?? ""),
+  };
+}
+
+export async function deleteAdminOrderPermanently({
+  orderId,
+  confirmation,
+}: {
+  orderId: string;
+  confirmation: string;
+}) {
+  const { client } = await getOrdersAdminContext();
+
+  if (!client) {
+    throw new OrdersAdminError("Supabase admin no esta configurado.");
+  }
+
+  if (confirmation.trim() !== ADMIN_ORDER_DELETE_CONFIRMATION) {
+    throw new OrdersAdminError(
+      "Confirmacion invalida. Debes escribir ELIMINAR.",
+      "invalidConfirmation"
+    );
+  }
+
+  const { data: order, error: orderError } = await client
+    .from("orders")
+    .select("id, order_number, order_status, payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (orderError || !order) {
+    throw new OrdersAdminError("El pedido no existe o ya no esta disponible.");
+  }
+
+  const { data: paymentAttempts, error: attemptsError } = await client
+    .from("payment_attempts")
+    .select("id, status, response_payload")
+    .eq("order_id", orderId);
+
+  if (attemptsError) {
+    throw new OrdersAdminError(
+      "No se pudo revisar el estado de pagos del pedido.",
+      "criticalRelations"
+    );
+  }
+
+  const eligibility = getAdminOrderDeletionEligibility({
+    orderStatus: normalizeStatusValue(order.order_status),
+    paymentStatus: normalizeStatusValue(order.payment_status),
+    hasConfirmedPaymentAttempt: (
+      (paymentAttempts ?? []) as Array<Record<string, unknown>>
+    ).some(hasConfirmedPaymentAttempt),
+  });
+
+  if (!eligibility.canDelete) {
+    throw new OrdersAdminError(eligibility.message, eligibility.reason);
+  }
+
+  const { error: unlinkLatestAttemptError } = await client
+    .from("orders")
+    .update({ latest_payment_attempt_id: null })
+    .eq("id", orderId);
+
+  if (unlinkLatestAttemptError) {
+    throw new OrdersAdminError(
+      "No se puede eliminar porque tiene relaciones criticas. Puedes archivarlo.",
+      "criticalRelations"
+    );
+  }
+
+  const relatedTables = [
+    "order_events",
+    "payment_attempts",
+    "order_shipping_addresses",
+    "order_items",
+  ] as const;
+
+  for (const table of relatedTables) {
+    const { error } = await client.from(table).delete().eq("order_id", orderId);
+
+    if (error) {
+      throw new OrdersAdminError(
+        "No se puede eliminar porque tiene relaciones criticas. Puedes archivarlo.",
+        "criticalRelations"
+      );
+    }
+  }
+
+  const { data: deletedOrder, error: deleteOrderError } = await client
+    .from("orders")
+    .delete()
+    .eq("id", orderId)
+    .select("id, order_number")
+    .maybeSingle();
+
+  if (deleteOrderError || !deletedOrder) {
+    throw new OrdersAdminError(
+      "No se puede eliminar porque tiene relaciones criticas. Puedes archivarlo.",
+      "criticalRelations"
+    );
+  }
+
+  return {
+    id: String(deletedOrder.id),
+    orderNumber: String(deletedOrder.order_number ?? ""),
   };
 }

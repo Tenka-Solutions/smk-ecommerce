@@ -4,7 +4,9 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { StatusBadge } from "@/components/feedback/StatusBadge";
 import { formatClp } from "@/lib/format/currency";
 import {
+  ADMIN_ORDER_DELETE_CONFIRMATION,
   ADMIN_ORDER_STATUSES,
+  getAdminOrderDeletionEligibility,
   getAdminOrderDetail,
   getAdminOrdersPageData,
   isArchiveableOrderStatus,
@@ -17,6 +19,7 @@ import type {
 } from "@/modules/orders/admin";
 import {
   archiveOrderAction,
+  deleteOrderPermanentlyAction,
   unarchiveOrderAction,
   updateOrderAction,
 } from "@/app/(admin)/admin/pedidos/actions";
@@ -44,6 +47,30 @@ const pageMessages: Record<string, { tone: "success" | "danger"; text: string }>
     desarchivado: {
       tone: "success",
       text: "Pedido restaurado al listado principal.",
+    },
+    eliminado: {
+      tone: "success",
+      text: "Pedido eliminado definitivamente.",
+    },
+    confirmacion_invalida: {
+      tone: "danger",
+      text: "Confirmacion invalida. Debes escribir ELIMINAR.",
+    },
+    pago_confirmado: {
+      tone: "danger",
+      text: "No se puede eliminar porque tiene pago confirmado.",
+    },
+    pedido_procesado: {
+      tone: "danger",
+      text: "No se puede eliminar porque ya fue procesado.",
+    },
+    relaciones_criticas: {
+      tone: "danger",
+      text: "No se puede eliminar porque tiene relaciones criticas. Puedes archivarlo.",
+    },
+    estado_no_eliminable: {
+      tone: "danger",
+      text: "Solo se pueden eliminar definitivamente pedidos pendientes o cancelados.",
     },
     error: {
       tone: "danger",
@@ -277,6 +304,12 @@ function OrderDetailPanel({
   returnTo: string;
 }) {
   const canArchive = isArchiveableOrderStatus(order.orderStatus);
+  const deleteEligibility = getAdminOrderDeletionEligibility({
+    orderStatus: order.orderStatus,
+    paymentStatus: order.paymentStatus,
+    paymentAttemptStatus: order.paymentAttemptStatus,
+    hasConfirmedPaymentAttempt: order.hasConfirmedPaymentAttempt,
+  });
   const paymentMethod =
     order.paymentProvider ?? order.paymentAttemptProvider ?? "Por confirmar";
 
@@ -492,6 +525,54 @@ function OrderDetailPanel({
                   </p>
                 ) : null}
               </form>
+            )}
+          </section>
+
+          <section className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-danger)_38%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_8%,var(--color-card)_92%)] p-5">
+            <h3 className="text-xl font-semibold">Zona peligrosa</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-muted-foreground)]">
+              La accion recomendada es archivar. La eliminacion definitiva
+              borra el pedido y sus registros operativos asociados.
+            </p>
+            <p className="mt-3 rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-xs leading-5 text-[var(--color-card-foreground)]">
+              {deleteEligibility.message}
+            </p>
+
+            {deleteEligibility.canDelete ? (
+              <form action={deleteOrderPermanentlyAction} className="mt-4 grid gap-3">
+                <input type="hidden" name="orderId" value={order.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+
+                <label className="grid gap-2 text-sm font-semibold">
+                  Escribe {ADMIN_ORDER_DELETE_CONFIRMATION} para confirmar
+                  <input
+                    name="confirmation"
+                    className="form-input"
+                    placeholder={ADMIN_ORDER_DELETE_CONFIRMATION}
+                    autoComplete="off"
+                    disabled={!canMutate}
+                    required
+                  />
+                </label>
+
+                <OrderSubmitButton
+                  disabled={!canMutate}
+                  className="button-secondary border-[color-mix(in_srgb,var(--color-danger)_54%,var(--color-border))] px-5 py-3 text-sm text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)]"
+                  confirmMessage="Esta accion eliminara definitivamente el pedido y no se puede deshacer. Quieres continuar?"
+                >
+                  Eliminar definitivamente
+                </OrderSubmitButton>
+              </form>
+            ) : (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  disabled
+                  className="button-secondary w-full cursor-not-allowed border-[color-mix(in_srgb,var(--color-danger)_32%,var(--color-border))] px-5 py-3 text-sm opacity-60"
+                >
+                  Eliminar definitivamente
+                </button>
+              </div>
             )}
           </section>
         </aside>
