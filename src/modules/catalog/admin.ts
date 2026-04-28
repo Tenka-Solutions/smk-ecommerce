@@ -12,7 +12,6 @@ import {
 import { getAuthenticatedUserRoles } from "@/modules/auth/server";
 import { getAdminCatalogSnapshot } from "@/modules/catalog/repository";
 import {
-  AvailabilityStatus,
   CatalogCategory,
   CatalogProduct,
   PublicationStatus,
@@ -856,7 +855,7 @@ export async function hideAdminProduct(productId: string) {
   const { error } = await client
     .from("products")
     .update({
-      availability_status: "hidden" satisfies AvailabilityStatus,
+      availability_status: "sold_out",
       publication_status: "archived" satisfies PublicationStatus,
       is_featured: false,
     })
@@ -873,4 +872,3 @@ export async function hideAdminProduct(productId: string) {
     slug: String(product.slug ?? ""),
   };
 }
-

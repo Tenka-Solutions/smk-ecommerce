@@ -14,7 +14,7 @@ export function AdminDataTable({
               {headers.map((header) => (
                 <th
                   key={header}
-                  className="px-4 py-3 text-left font-semibold text-[var(--color-muted)]"
+                  className="px-4 py-3 text-left font-semibold text-[var(--color-muted-foreground)]"
                 >
                   {header}
                 </th>

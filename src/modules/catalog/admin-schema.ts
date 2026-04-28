@@ -9,8 +9,6 @@ export const ADMIN_PRODUCT_STATUSES = [
   "available",
   "check_availability",
   "sold_out",
-  "draft",
-  "hidden",
 ] as const satisfies AvailabilityStatus[];
 
 export type AdminProductStatus = (typeof ADMIN_PRODUCT_STATUSES)[number];
@@ -143,20 +141,6 @@ function numberField(value: FormDataEntryValue | null) {
   return parsed;
 }
 
-function publicationStatusFromAvailability(
-  status: AdminProductStatus
-): ProductFormValues["publicationStatus"] {
-  if (status === "draft") {
-    return "draft";
-  }
-
-  if (status === "hidden") {
-    return "archived";
-  }
-
-  return "published";
-}
-
 const productFormSchema = z.object({
   productId: z.string().trim().optional(),
   name: z.string().trim().min(1, "El nombre es obligatorio."),
@@ -276,7 +260,7 @@ export function parseProductFormData(formData: FormData) {
       trimString(formData.get("availabilityStatus")) as AdminProductStatus
     )
       ? (trimString(formData.get("availabilityStatus")) as AdminProductStatus)
-      : "draft",
+      : "sold_out",
     publicationStatus: ADMIN_PUBLICATION_STATUSES.includes(
       trimString(formData.get("publicationStatus")) as AdminPublicationStatus
     )
@@ -311,7 +295,7 @@ export function parseProductFormData(formData: FormData) {
   const highlights = splitLines(result.data.highlightsText);
   const publicationStatus =
     result.data.publicationStatus ??
-    publicationStatusFromAvailability(result.data.availabilityStatus);
+    "draft";
   const shortDescription = result.data.shortDescription;
   const longDescription =
     result.data.longDescription || result.data.shortDescription;

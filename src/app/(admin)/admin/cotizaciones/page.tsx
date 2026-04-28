@@ -13,7 +13,7 @@ export default async function AdminQuotesPage() {
       <section className="panel-card rounded-[2rem] p-6 sm:p-8">
         <p className="section-kicker">Comercial</p>
         <h1 className="mt-3 text-4xl font-semibold">Cotizaciones</h1>
-        <p className="mt-4 text-sm leading-8 text-[var(--color-muted)]">
+        <p className="mt-4 text-sm leading-8 text-[var(--color-muted-foreground)]">
           Gestiona solicitudes entrantes sin interrumpir el flujo de compra
           directa del ecommerce.
         </p>

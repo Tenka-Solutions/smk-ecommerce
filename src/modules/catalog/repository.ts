@@ -20,9 +20,7 @@ function normalizeText(value: string) {
 
 function applyFilters(products: CatalogProduct[], filters: CatalogFilters = {}) {
   let result = products.filter(
-    (product) =>
-      product.publicationStatus === "published" &&
-      !["draft", "hidden"].includes(product.availabilityStatus)
+    (product) => product.publicationStatus === "published"
   );
 
   if (filters.category) {

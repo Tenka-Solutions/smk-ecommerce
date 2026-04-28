@@ -27,8 +27,6 @@ const availabilityStatusLabels: Record<
   available: "Disponible",
   check_availability: "Consultar disponibilidad",
   sold_out: "Agotado",
-  draft: "Borrador",
-  hidden: "Oculto",
 };
 
 const publicationStatusLabels: Record<
@@ -102,7 +100,7 @@ export function ProductForm({
   );
   const defaultStatus = valueOrFallback(
     stateValues?.availabilityStatus,
-    product?.availabilityStatus ?? "draft"
+    product?.availabilityStatus ?? "sold_out"
   );
   const defaultPublicationStatus = valueOrFallback(
     stateValues?.publicationStatus,
@@ -477,7 +475,7 @@ export function ProductForm({
 
           <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-5 text-sm leading-7 text-[var(--color-muted-foreground)]">
             Si falta precio real, usa 0 temporalmente y deja el producto como
-            borrador, oculto o agotado hasta reemplazar el dato.
+            borrador en publicacion o agotado hasta reemplazar el dato.
           </div>
         </aside>
       </div>

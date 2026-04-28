@@ -17,9 +17,9 @@ html[data-theme="light"] {
   --color-surface-soft: #F3DED0;
   --color-card: #FFF8F2;
   --color-card-foreground: #232D2F;
-  --color-border: #D2AA91;
+  --color-border: #C0957B;
   --color-muted: #EBD0BF;
-  --color-muted-foreground: #5B484E;
+  --color-muted-foreground: #4B3A40;
   --color-primary: #CC8328;
   --color-primary-hover: #A9681F;
   --color-primary-foreground: #FFF8F2;
@@ -30,8 +30,8 @@ html[data-theme="light"] {
   --color-accent-hover: #46363B;
   --color-accent-foreground: #FFF8F2;
   --color-input: #FFF8F2;
-  --color-input-foreground: #f2a359;
-  --color-placeholder: #7C625A;
+  --color-input-foreground: #232D2F;
+  --color-placeholder: #6B524B;
   --color-link: #8A551A;
   --color-link-hover: #CC8328;
   --color-price: #CC8328;
@@ -56,6 +56,13 @@ html[data-theme="light"] {
   --color-hero-muted: #433A3F;
   --color-hero-card: rgba(255, 248, 242, 0.78);
   --color-hero-border: rgba(161, 123, 104, 0.22);
+  --color-admin-background: var(--color-background);
+  --color-admin-card: var(--color-card);
+  --color-admin-foreground: var(--color-card-foreground);
+  --color-admin-muted: #4B3A40;
+  --color-admin-border: #B98E73;
+  --color-admin-link: #6F4314;
+  --color-admin-link-hover: #8A551A;
 
   --background: var(--color-background);
   --foreground: var(--color-foreground);
@@ -98,9 +105,9 @@ html[data-theme="dark"] {
   --color-surface-soft: #334144;
   --color-card: #2B3437;
   --color-card-foreground: #F6E7DA;
-  --color-border: #5B484E;
+  --color-border: #725B60;
   --color-muted: #3A4649;
-  --color-muted-foreground: #D8B9A5;
+  --color-muted-foreground: #E6CBB9;
   --color-primary: #CC8328;
   --color-primary-hover: #E09A3A;
   --color-primary-foreground: #232D2F;
@@ -112,7 +119,7 @@ html[data-theme="dark"] {
   --color-accent-foreground: #232D2F;
   --color-input: #2C383A;
   --color-input-foreground: #F6E7DA;
-  --color-placeholder: #A17B68;
+  --color-placeholder: #C8A892;
   --color-link: #E4C3AD;
   --color-link-hover: #CC8328;
   --color-price: #E09A3A;
@@ -137,6 +144,13 @@ html[data-theme="dark"] {
   --color-hero-muted: #D8B9A5;
   --color-hero-card: rgba(255, 255, 255, 0.055);
   --color-hero-border: rgba(228, 195, 173, 0.14);
+  --color-admin-background: var(--color-background);
+  --color-admin-card: var(--color-card);
+  --color-admin-foreground: var(--color-card-foreground);
+  --color-admin-muted: #E6CBB9;
+  --color-admin-border: #7E6468;
+  --color-admin-link: #F0D2BE;
+  --color-admin-link-hover: #F8E3D3;
 
   --background: var(--color-background);
   --foreground: var(--color-foreground);
@@ -292,14 +306,14 @@ img {
 }
 
 .surface-card {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-admin-border, var(--color-border));
   background: var(--color-card);
   color: var(--color-card-foreground);
   box-shadow: var(--shadow-card);
 }
 
 .panel-card {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-admin-border, var(--color-border));
   background: var(--color-card);
   color: var(--color-card-foreground);
   box-shadow: var(--shadow-soft);
@@ -326,14 +340,20 @@ img {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-card) 86%, transparent);
-  color: var(--color-card-foreground);
+  border: 1px solid var(--color-admin-border, var(--color-border));
+  background: color-mix(
+    in srgb,
+    var(--color-card) 72%,
+    var(--color-surface-strong) 28%
+  );
+  color: var(--color-admin-foreground, var(--color-card-foreground));
   font-weight: 600;
 }
 
 .button-secondary:hover {
-  background: var(--color-card);
+  border-color: var(--color-primary);
+  background: var(--color-surface-strong);
+  color: var(--color-admin-foreground, var(--color-card-foreground));
 }
 
 .button-gold {
@@ -352,7 +372,7 @@ img {
 }
 
 .section-kicker {
-  color: var(--color-secondary);
+  color: var(--color-admin-link, var(--color-link));
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.24em;
@@ -362,7 +382,7 @@ img {
 .form-input {
   width: 100%;
   border-radius: 1.125rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-admin-border, var(--color-border));
   background: var(--color-input);
   padding: 0.9rem 1rem;
   font-size: 0.95rem;
@@ -377,4 +397,14 @@ img {
 
 .form-input::placeholder {
   color: var(--color-placeholder);
+  opacity: 1;
+}
+
+.form-input:disabled {
+  background: color-mix(
+    in srgb,
+    var(--color-input) 72%,
+    var(--color-surface-strong) 28%
+  );
+  color: var(--color-muted-foreground);
 }

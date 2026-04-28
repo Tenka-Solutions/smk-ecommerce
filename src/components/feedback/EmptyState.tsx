@@ -16,7 +16,7 @@ export function EmptyState({
       <h2 className="text-2xl font-semibold text-[var(--color-ink)]">
         {title}
       </h2>
-      <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--color-muted)]">
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--color-muted-foreground)]">
         {description}
       </p>
       {actionHref && actionLabel ? (

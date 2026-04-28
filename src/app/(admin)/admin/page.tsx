@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
       <section className="panel-card rounded-[2rem] p-6 sm:p-8">
         <p className="section-kicker">Admin</p>
         <h1 className="mt-3 text-4xl font-semibold">Panel de gestion</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-8 text-[var(--color-muted)]">
+        <p className="mt-4 max-w-3xl text-sm leading-8 text-[var(--color-muted-foreground)]">
           Monitorea la operacion del ecommerce, revisa pedidos y manten el
           catalogo listo para publicar.
         </p>
@@ -42,7 +42,7 @@ export default async function AdminDashboardPage() {
             key={label}
             className="surface-card rounded-[1.75rem] px-5 py-6"
           >
-            <p className="text-sm text-[var(--color-muted)]">{label}</p>
+            <p className="text-sm text-[var(--color-muted-foreground)]">{label}</p>
             <p className="mt-3 text-3xl font-semibold">{value}</p>
           </article>
         ))}
@@ -67,7 +67,7 @@ export default async function AdminDashboardPage() {
               >
                 <div>
                   <p className="font-semibold">{order.orderNumber}</p>
-                  <p className="mt-1 text-sm text-[var(--color-muted)]">
+                  <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
                     {formatClp(order.totalTaxInc)}
                   </p>
                 </div>
@@ -78,7 +78,7 @@ export default async function AdminDashboardPage() {
               </div>
             ))}
             {!orders.length ? (
-              <p className="text-sm text-[var(--color-muted)]">
+              <p className="text-sm text-[var(--color-muted-foreground)]">
                 Aun no hay pedidos en la base conectada.
               </p>
             ) : null}
@@ -104,7 +104,7 @@ export default async function AdminDashboardPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="font-semibold">{quote.name}</p>
-                    <p className="mt-1 text-sm text-[var(--color-muted)]">
+                    <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
                       {quote.email}
                     </p>
                   </div>
@@ -113,7 +113,7 @@ export default async function AdminDashboardPage() {
               </div>
             ))}
             {!quotes.length ? (
-              <p className="text-sm text-[var(--color-muted)]">
+              <p className="text-sm text-[var(--color-muted-foreground)]">
                 Aun no hay solicitudes en la base conectada.
               </p>
             ) : null}

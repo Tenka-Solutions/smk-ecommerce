@@ -7,9 +7,7 @@ export type CatalogCategorySlug =
 export type AvailabilityStatus =
   | "available"
   | "check_availability"
-  | "sold_out"
-  | "draft"
-  | "hidden";
+  | "sold_out";
 
 export type PublicationStatus = "draft" | "published" | "archived";
 

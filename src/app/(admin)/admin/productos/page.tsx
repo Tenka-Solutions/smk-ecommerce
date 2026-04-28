@@ -165,7 +165,7 @@ function ProductAdminCard({
             <input type="hidden" name="productId" value={product.id} />
             <button
               type="submit"
-              disabled={!canMutate || product.availabilityStatus === "hidden"}
+              disabled={!canMutate || product.publicationStatus === "archived"}
               className="button-secondary px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
             >
               Ocultar
@@ -353,8 +353,6 @@ export default async function AdminProductsPage({
               <option value="available">Disponible</option>
               <option value="check_availability">Consultar</option>
               <option value="sold_out">Agotado</option>
-              <option value="draft">Borrador</option>
-              <option value="hidden">Oculto</option>
             </select>
           </label>
 

@@ -7,18 +7,12 @@ const badgeStyles: Record<CatalogProduct["availabilityStatus"], string> = {
     "bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] text-[var(--color-warning)]",
   sold_out:
     "bg-[color-mix(in_srgb,var(--color-danger)_16%,var(--color-card)_84%)] text-[var(--color-danger)]",
-  draft:
-    "bg-[color-mix(in_srgb,var(--color-muted-foreground)_16%,var(--color-card)_84%)] text-[var(--color-muted-foreground)]",
-  hidden:
-    "bg-[color-mix(in_srgb,var(--color-muted-foreground)_16%,var(--color-card)_84%)] text-[var(--color-muted-foreground)]",
 };
 
 const badgeLabels: Record<CatalogProduct["availabilityStatus"], string> = {
   available: "Disponible",
   check_availability: "Consultar disponibilidad",
   sold_out: "Agotado",
-  draft: "Borrador",
-  hidden: "Oculto",
 };
 
 export function AvailabilityBadge({

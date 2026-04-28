@@ -1,100 +1,94 @@
 "use client";
 
+const statusToneClassNames = {
+  warning:
+    "border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_22%,var(--color-card)_78%)] text-[var(--color-card-foreground)]",
+  success:
+    "border-[color-mix(in_srgb,var(--color-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-success)_18%,var(--color-card)_82%)] text-[var(--color-card-foreground)]",
+  danger:
+    "border-[color-mix(in_srgb,var(--color-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_18%,var(--color-card)_82%)] text-[var(--color-card-foreground)]",
+  muted:
+    "border-[color-mix(in_srgb,var(--color-muted-foreground)_38%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-surface-strong)_72%,var(--color-card)_28%)] text-[var(--color-card-foreground)]",
+  secondary:
+    "border-[color-mix(in_srgb,var(--color-secondary)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-secondary)_18%,var(--color-card)_82%)] text-[var(--color-card-foreground)]",
+} as const;
+
 const statusMap = {
   pending: {
     label: "Pendiente",
-    className:
-      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+    className: statusToneClassNames.warning,
   },
   paid: {
     label: "Pagado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+    className: statusToneClassNames.success,
   },
   rejected: {
     label: "Rechazado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)] text-[var(--color-danger)]",
+    className: statusToneClassNames.danger,
   },
   cancelled: {
     label: "Cancelado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+    className: statusToneClassNames.muted,
   },
   preparing: {
     label: "En preparacion",
-    className:
-      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+    className: statusToneClassNames.warning,
   },
   processing: {
     label: "En proceso",
-    className:
-      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+    className: statusToneClassNames.warning,
   },
   shipped: {
     label: "Enviado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
+    className: statusToneClassNames.secondary,
   },
   completed: {
     label: "Completado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+    className: statusToneClassNames.success,
   },
   delivered: {
     label: "Entregado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+    className: statusToneClassNames.success,
   },
   new: {
     label: "Nueva",
-    className:
-      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+    className: statusToneClassNames.warning,
   },
   reviewed: {
     label: "Revisada",
-    className:
-      "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
+    className: statusToneClassNames.secondary,
   },
   closed: {
     label: "Cerrada",
-    className:
-      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+    className: statusToneClassNames.muted,
   },
   available: {
     label: "Disponible",
-    className:
-      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+    className: statusToneClassNames.success,
   },
   check_availability: {
     label: "Consultar",
-    className:
-      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+    className: statusToneClassNames.warning,
   },
   sold_out: {
     label: "Agotado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)] text-[var(--color-danger)]",
+    className: statusToneClassNames.danger,
   },
   draft: {
     label: "Borrador",
-    className:
-      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+    className: statusToneClassNames.muted,
   },
   hidden: {
     label: "Oculto",
-    className:
-      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+    className: statusToneClassNames.muted,
   },
   published: {
     label: "Publicado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+    className: statusToneClassNames.success,
   },
   archived: {
     label: "Archivado",
-    className:
-      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+    className: statusToneClassNames.muted,
   },
 } as const;
 
@@ -107,8 +101,7 @@ export function StatusBadge({
     statusMap[status as keyof typeof statusMap] ??
     ({
       label: status,
-      className:
-        "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
+      className: statusToneClassNames.secondary,
     } as const);
 
   return (
