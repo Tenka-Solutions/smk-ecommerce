@@ -300,6 +300,17 @@ export function parseProductFormData(formData: FormData) {
   const longDescription =
     result.data.longDescription || result.data.shortDescription;
 
+  if (publicationStatus === "published" && grossPriceClp <= 0) {
+    return {
+      success: false as const,
+      fieldErrors: {
+        grossPriceClp:
+          "Para publicar en tienda, el precio bruto debe ser mayor a 0. Si el precio esta pendiente, deja el producto como borrador.",
+      },
+      values: raw,
+    };
+  }
+
   return {
     success: true as const,
     data: {

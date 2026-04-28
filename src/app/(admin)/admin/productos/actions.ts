@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   CatalogAdminError,
+  deleteAdminProduct,
   hideAdminProduct,
   saveAdminProduct,
 } from "@/modules/catalog/admin";
@@ -12,7 +13,11 @@ import {
   parseProductFormData,
 } from "@/modules/catalog/admin-schema";
 
-function revalidateCatalogPaths(productSlug?: string, categorySlug?: string) {
+function revalidateCatalogPaths(
+  productSlug?: string,
+  categorySlug?: string,
+  parentCategorySlug?: string
+) {
   revalidatePath("/admin/productos");
   revalidatePath("/tienda");
 
@@ -20,9 +25,27 @@ function revalidateCatalogPaths(productSlug?: string, categorySlug?: string) {
     revalidatePath(`/productos/${productSlug}`);
   }
 
-  if (categorySlug) {
-    revalidatePath(`/categorias/${categorySlug}`);
+  [categorySlug, parentCategorySlug]
+    .filter((slug): slug is string => Boolean(slug))
+    .forEach((slug) => {
+      revalidatePath(`/categorias/${slug}`);
+    });
+}
+
+function getProductErrorStatus(error: unknown) {
+  if (!(error instanceof CatalogAdminError)) {
+    return "error";
   }
+
+  if (error.field === "productHasOrders") {
+    return "producto_con_pedidos";
+  }
+
+  if (error.field === "productHasQuotes") {
+    return "producto_con_cotizaciones";
+  }
+
+  return "error";
 }
 
 export async function saveProductAction(
@@ -61,7 +84,11 @@ export async function saveProductAction(
     };
   }
 
-  revalidateCatalogPaths(savedProduct.slug, savedProduct.categorySlug);
+  revalidateCatalogPaths(
+    savedProduct.slug,
+    savedProduct.categorySlug,
+    savedProduct.parentCategorySlug
+  );
   redirect("/admin/productos?estado=guardado");
 }
 
@@ -74,10 +101,35 @@ export async function hideProductAction(formData: FormData) {
 
   try {
     const hiddenProduct = await hideAdminProduct(productId);
-    revalidateCatalogPaths(hiddenProduct.slug);
-  } catch {
-    redirect("/admin/productos?estado=error");
+    revalidateCatalogPaths(
+      hiddenProduct.slug,
+      hiddenProduct.categorySlug,
+      hiddenProduct.parentCategorySlug
+    );
+  } catch (error) {
+    redirect(`/admin/productos?estado=${getProductErrorStatus(error)}`);
   }
 
   redirect("/admin/productos?estado=oculto");
+}
+
+export async function deleteProductAction(formData: FormData) {
+  const productId = formData.get("productId");
+
+  if (typeof productId !== "string" || !productId.trim()) {
+    redirect("/admin/productos?estado=error");
+  }
+
+  try {
+    const deletedProduct = await deleteAdminProduct(productId);
+    revalidateCatalogPaths(
+      deletedProduct.slug,
+      deletedProduct.categorySlug,
+      deletedProduct.parentCategorySlug
+    );
+  } catch (error) {
+    redirect(`/admin/productos?estado=${getProductErrorStatus(error)}`);
+  }
+
+  redirect("/admin/productos?estado=eliminado");
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { StatusBadge } from "@/components/feedback/StatusBadge";
@@ -16,7 +17,10 @@ import type {
   AdminCatalogCategory,
   AdminCatalogProduct,
 } from "@/modules/catalog/admin";
-import { hideProductAction } from "@/app/(admin)/admin/productos/actions";
+import {
+  deleteProductAction,
+  hideProductAction,
+} from "@/app/(admin)/admin/productos/actions";
 
 type SearchParams = Promise<{
   q?: string;
@@ -39,7 +43,19 @@ const pageMessages: Record<string, { tone: "success" | "danger"; text: string }>
     },
     oculto: {
       tone: "success",
-      text: "Producto ocultado sin borrarlo fisicamente.",
+      text: "Producto archivado sin borrarlo fisicamente.",
+    },
+    eliminado: {
+      tone: "success",
+      text: "Producto eliminado definitivamente.",
+    },
+    producto_con_pedidos: {
+      tone: "danger",
+      text: "No puedes eliminar este producto porque tiene pedidos asociados. Puedes archivarlo.",
+    },
+    producto_con_cotizaciones: {
+      tone: "danger",
+      text: "No puedes eliminar este producto porque tiene cotizaciones asociadas. Puedes archivarlo.",
     },
     error: {
       tone: "danger",
@@ -96,6 +112,8 @@ function ProductAdminCard({
   product: AdminCatalogProduct;
   canMutate: boolean;
 }) {
+  const visibility = product.publicVisibility;
+
   return (
     <article className="grid gap-4 rounded-[1.75rem] border border-[var(--color-border)] bg-[var(--color-card)] p-4 md:grid-cols-[96px_minmax(0,1fr)_auto] md:items-center">
       <div className="overflow-hidden rounded-[1.25rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)]">
@@ -133,6 +151,7 @@ function ProductAdminCard({
         </p>
 
         <div className="mt-3 flex flex-wrap gap-2">
+          <StatusBadge status={visibility.badgeStatus} />
           <StatusBadge status={product.availabilityStatus} />
           <StatusBadge status={product.publicationStatus} />
           {product.stockQuantity !== null ? (
@@ -141,6 +160,9 @@ function ProductAdminCard({
             </span>
           ) : null}
         </div>
+        <p className="mt-3 text-xs leading-5 text-[var(--color-muted-foreground)]">
+          {visibility.description}
+        </p>
       </div>
 
       <div className="grid gap-3 md:min-w-44 md:justify-items-end">
@@ -154,6 +176,22 @@ function ProductAdminCard({
         </div>
 
         <div className="flex flex-wrap gap-2 md:justify-end">
+          {visibility.isVisible && product.slug && product.categorySlug ? (
+            <>
+              <Link
+                href={`/productos/${product.slug}`}
+                className="button-secondary px-4 py-2 text-xs"
+              >
+                Ver en tienda
+              </Link>
+              <Link
+                href={`/categorias/${product.categorySlug}`}
+                className="button-secondary px-4 py-2 text-xs"
+              >
+                Ver categoria
+              </Link>
+            </>
+          ) : null}
           <Link
             href={buildProductsHref({ editar: product.id })}
             className="button-secondary px-4 py-2 text-xs"
@@ -168,8 +206,19 @@ function ProductAdminCard({
               disabled={!canMutate || product.publicationStatus === "archived"}
               className="button-secondary px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Ocultar
+              Archivar
             </button>
+          </form>
+
+          <form action={deleteProductAction}>
+            <input type="hidden" name="productId" value={product.id} />
+            <ConfirmSubmitButton
+              disabled={!canMutate}
+              className="button-secondary px-4 py-2 text-xs"
+              confirmMessage="Eliminar definitivamente este producto no se puede deshacer. Si tiene pedidos asociados, la accion sera bloqueada. Quieres continuar?"
+            >
+              Eliminar definitivamente
+            </ConfirmSubmitButton>
           </form>
         </div>
       </div>

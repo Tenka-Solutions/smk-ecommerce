@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { ConfirmSubmitButton } from "@/components/admin/ConfirmSubmitButton";
 import { CategoryForm } from "@/components/admin/CategoryForm";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { getAdminCategoriesPageData } from "@/modules/catalog/admin";
 import type { AdminCatalogCategory } from "@/modules/catalog/admin";
-import { setCategoryActiveAction } from "@/app/(admin)/admin/categorias/actions";
+import {
+  deleteCategoryAction,
+  setCategoryActiveAction,
+} from "@/app/(admin)/admin/categorias/actions";
 
 type SearchParams = Promise<{
   editar?: string;
@@ -25,6 +29,18 @@ const pageMessages: Record<string, { tone: "success" | "danger"; text: string }>
     desactivada: {
       tone: "success",
       text: "Categoria desactivada sin borrarla fisicamente.",
+    },
+    eliminada: {
+      tone: "success",
+      text: "Categoria eliminada definitivamente.",
+    },
+    categoria_con_productos: {
+      tone: "danger",
+      text: "No puedes eliminar esta categoria porque tiene productos asociados. Puedes desactivarla.",
+    },
+    categoria_con_subcategorias: {
+      tone: "danger",
+      text: "No puedes eliminar esta categoria porque tiene subcategorias. Puedes desactivarla.",
     },
     error: {
       tone: "danger",
@@ -61,10 +77,12 @@ function CategoryStatusPill({ isActive }: { isActive: boolean }) {
 function CategoryRow({
   category,
   canMutate,
+  hasChildren,
   level = 0,
 }: {
   category: AdminCatalogCategory;
   canMutate: boolean;
+  hasChildren: boolean;
   level?: number;
 }) {
   const productTotal = category.productCount + category.descendantProductCount;
@@ -142,7 +160,25 @@ function CategoryRow({
             {category.isActive ? "Desactivar" : "Activar"}
           </button>
         </form>
+
+        <form action={deleteCategoryAction}>
+          <input type="hidden" name="categoryId" value={category.id} />
+          <ConfirmSubmitButton
+            disabled={!canMutate}
+            className="button-secondary px-4 py-2 text-xs"
+            confirmMessage="Eliminar definitivamente esta categoria no se puede deshacer. Si tiene productos o subcategorias, la accion sera bloqueada. Quieres continuar?"
+          >
+            Eliminar definitivamente
+          </ConfirmSubmitButton>
+        </form>
       </div>
+
+      {hasChildren || category.productCount > 0 ? (
+        <p className="md:col-span-2 text-xs leading-5 text-[var(--color-muted-foreground)]">
+          Para eliminar definitivamente, primero debe quedar sin productos
+          directos y sin subcategorias. Mientras tanto puedes desactivarla.
+        </p>
+      ) : null}
     </article>
   );
 }
@@ -267,12 +303,17 @@ export default async function AdminCategoriesPage({
         {parentCategories.length > 0 ? (
           parentCategories.map((parent) => (
             <div key={parent.id} className="grid gap-3">
-              <CategoryRow category={parent} canMutate={pageData.canMutate} />
+              <CategoryRow
+                category={parent}
+                canMutate={pageData.canMutate}
+                hasChildren={Boolean(childrenByParent[parent.id]?.length)}
+              />
               {(childrenByParent[parent.id] ?? []).map((child) => (
                 <CategoryRow
                   key={child.id}
                   category={child}
                   canMutate={pageData.canMutate}
+                  hasChildren={Boolean(childrenByParent[child.id]?.length)}
                   level={1}
                 />
               ))}
@@ -297,6 +338,7 @@ export default async function AdminCategoriesPage({
                 key={child.id}
                 category={child}
                 canMutate={pageData.canMutate}
+                hasChildren={Boolean(childrenByParent[child.id]?.length)}
                 level={1}
               />
             ))}

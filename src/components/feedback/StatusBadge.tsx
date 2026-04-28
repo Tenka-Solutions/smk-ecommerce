@@ -90,6 +90,34 @@ const statusMap = {
     label: "Archivado",
     className: statusToneClassNames.muted,
   },
+  store_visible: {
+    label: "Visible en tienda",
+    className: statusToneClassNames.success,
+  },
+  store_hidden: {
+    label: "No visible en tienda",
+    className: statusToneClassNames.warning,
+  },
+  store_draft: {
+    label: "Borrador",
+    className: statusToneClassNames.muted,
+  },
+  store_archived: {
+    label: "Archivado",
+    className: statusToneClassNames.muted,
+  },
+  no_price: {
+    label: "Sin precio publico",
+    className: statusToneClassNames.warning,
+  },
+  category_inactive: {
+    label: "Categoria inactiva",
+    className: statusToneClassNames.warning,
+  },
+  missing_category: {
+    label: "Falta categoria",
+    className: statusToneClassNames.danger,
+  },
 } as const;
 
 export function StatusBadge({

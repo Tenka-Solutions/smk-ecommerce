@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   CatalogAdminError,
+  deleteAdminCategory,
   saveAdminCategory,
   setAdminCategoryActive,
 } from "@/modules/catalog/admin";
@@ -20,6 +21,22 @@ function revalidateCategoryPaths(categorySlug?: string) {
   if (categorySlug) {
     revalidatePath(`/categorias/${categorySlug}`);
   }
+}
+
+function getCategoryErrorStatus(error: unknown) {
+  if (!(error instanceof CatalogAdminError)) {
+    return "error";
+  }
+
+  if (error.field === "categoryHasChildren") {
+    return "categoria_con_subcategorias";
+  }
+
+  if (error.field === "categoryHasProducts") {
+    return "categoria_con_productos";
+  }
+
+  return "error";
 }
 
 export async function saveCategoryAction(
@@ -75,11 +92,28 @@ export async function setCategoryActiveAction(formData: FormData) {
   try {
     const category = await setAdminCategoryActive(categoryId, nextActive);
     revalidateCategoryPaths(category.slug);
-  } catch {
-    redirect("/admin/categorias?estado=error");
+  } catch (error) {
+    redirect(`/admin/categorias?estado=${getCategoryErrorStatus(error)}`);
   }
 
   redirect(
     `/admin/categorias?estado=${nextActive ? "activada" : "desactivada"}`
   );
+}
+
+export async function deleteCategoryAction(formData: FormData) {
+  const categoryId = formData.get("categoryId");
+
+  if (typeof categoryId !== "string" || !categoryId.trim()) {
+    redirect("/admin/categorias?estado=error");
+  }
+
+  try {
+    const category = await deleteAdminCategory(categoryId);
+    revalidateCategoryPaths(category.slug);
+  } catch (error) {
+    redirect(`/admin/categorias?estado=${getCategoryErrorStatus(error)}`);
+  }
+
+  redirect("/admin/categorias?estado=eliminada");
 }

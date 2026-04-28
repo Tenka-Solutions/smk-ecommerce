@@ -142,6 +142,8 @@ function applyFilters(
   let result = products.filter(
     (product) =>
       product.publicationStatus === "published" &&
+      // The storefront can add products to cart, so zero-price items stay hidden
+      // until a quote-only public flow is implemented.
       product.priceClpTaxInc > 0 &&
       publicCategoryIds.has(getProductCategoryId(product, categories) ?? "")
   );

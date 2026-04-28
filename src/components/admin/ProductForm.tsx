@@ -5,6 +5,8 @@ import { useState, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { saveProductAction } from "@/app/(admin)/admin/productos/actions";
 import { ProductImageUploader } from "@/components/admin/ProductImageUploader";
+import { StatusBadge } from "@/components/feedback/StatusBadge";
+import { getAdminProductVisibilityInfo } from "@/modules/catalog/admin-visibility";
 import {
   ADMIN_PRODUCT_STATUSES,
   ADMIN_PUBLICATION_STATUSES,
@@ -106,11 +108,32 @@ export function ProductForm({
     stateValues?.publicationStatus,
     product?.publicationStatus ?? "draft"
   );
+  const initialGrossPrice = valueOrFallback(
+    stateValues?.grossPriceClp,
+    product?.grossPriceClp ?? product?.priceClpTaxInc ?? 0
+  );
+  const [selectedCategoryId, setSelectedCategoryId] =
+    useState(defaultCategoryId);
+  const [publicationStatus, setPublicationStatus] = useState(
+    defaultPublicationStatus
+  );
+  const [grossPrice, setGrossPrice] = useState(initialGrossPrice);
   const parentCategories = categories.filter((category) => !category.parentId);
   const childCategories = categories.filter((category) => category.parentId);
   const orphanChildren = childCategories.filter(
     (category) => !categories.some((parent) => parent.id === category.parentId)
   );
+  const selectedCategory = categories.find(
+    (category) => category.id === selectedCategoryId
+  );
+  const visibility = getAdminProductVisibilityInfo({
+    categoryId: selectedCategoryId,
+    categoryExists: Boolean(selectedCategory),
+    categoryIsActive: selectedCategory?.isActive,
+    categoryIsVisible: selectedCategory?.isVisible,
+    publicationStatus,
+    grossPriceClp: grossPrice,
+  });
 
   function handleNameChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextName = event.target.value;
@@ -238,6 +261,7 @@ export function ProductForm({
                 defaultValue={defaultCategoryId}
                 className="form-input"
                 disabled={!canMutate}
+                onChange={(event) => setSelectedCategoryId(event.target.value)}
               >
                 <option value="">Selecciona una categoria</option>
                 {parentCategories.map((parent) => (
@@ -331,6 +355,7 @@ export function ProductForm({
                 )}
                 className="form-input"
                 disabled={!canMutate}
+                onChange={(event) => setGrossPrice(Number(event.target.value) || 0)}
               />
               <FormFieldError message={state.fieldErrors?.grossPriceClp} />
             </label>
@@ -361,6 +386,11 @@ export function ProductForm({
                 defaultValue={defaultPublicationStatus}
                 className="form-input"
                 disabled={!canMutate}
+                onChange={(event) =>
+                  setPublicationStatus(
+                    event.target.value as typeof defaultPublicationStatus
+                  )
+                }
               >
                 {ADMIN_PUBLICATION_STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -474,8 +504,31 @@ export function ProductForm({
           </label>
 
           <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-5 text-sm leading-7 text-[var(--color-muted-foreground)]">
-            Si falta precio real, usa 0 temporalmente y deja el producto como
-            borrador en publicacion o agotado hasta reemplazar el dato.
+            Para aparecer en tienda, el producto debe estar publicado y tener
+            precio bruto mayor a 0. Si falta precio real, usa 0 temporalmente y
+            dejalo como borrador hasta reemplazar el dato.
+          </div>
+
+          <div className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-card)] p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-lg font-semibold">Visibilidad en tienda</h3>
+              <StatusBadge status={visibility.badgeStatus} />
+            </div>
+            <p className="mt-3 text-sm leading-7 text-[var(--color-muted-foreground)]">
+              {visibility.description}
+            </p>
+            <ul className="mt-4 grid gap-2 text-xs leading-5 text-[var(--color-muted-foreground)]">
+              <li>Publicacion: {publicationStatus}</li>
+              <li>Precio bruto: {grossPrice > 0 ? "mayor a 0" : "pendiente"}</li>
+              <li>
+                Categoria:{" "}
+                {selectedCategory
+                  ? selectedCategory.isActive
+                    ? "activa"
+                    : "inactiva"
+                  : "sin seleccionar"}
+              </li>
+            </ul>
           </div>
         </aside>
       </div>

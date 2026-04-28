@@ -10,6 +10,7 @@ import {
   isPlaceholderSku,
 } from "@/modules/catalog/admin-schema";
 import { getAuthenticatedUserRoles } from "@/modules/auth/server";
+import { getAdminProductVisibilityInfo } from "@/modules/catalog/admin-visibility";
 import { getAdminCatalogSnapshot } from "@/modules/catalog/repository";
 import {
   CatalogCategory,
@@ -55,8 +56,12 @@ export interface AdminCatalogProduct {
   categoryId: string;
   categorySlug: string;
   categoryName: string;
+  categoryExists: boolean;
   categoryParentId: string | null;
   categoryParentName: string | null;
+  categoryIsActive: boolean;
+  categoryIsVisible: boolean;
+  publicVisibility: ReturnType<typeof getAdminProductVisibilityInfo>;
   name: string;
   slug: string;
   sku: string | null;
@@ -224,13 +229,16 @@ function mapProduct(
   const primaryImagePath =
     typeof row.primary_image_path === "string" ? row.primary_image_path : "";
 
-  return {
+  const mappedProduct = {
     id: String(row.id),
     categoryId: String(row.category_id ?? ""),
     categorySlug: category?.slug ?? "",
     categoryName: category?.name ?? "Sin categoria",
+    categoryExists: Boolean(category),
     categoryParentId: category?.parentId ?? null,
     categoryParentName: parentCategory?.name ?? null,
+    categoryIsActive: category?.isActive ?? false,
+    categoryIsVisible: category?.isVisible ?? false,
     name: String(row.name ?? ""),
     slug: String(row.slug ?? ""),
     sku: typeof row.sku === "string" && row.sku.trim() ? row.sku : null,
@@ -256,6 +264,11 @@ function mapProduct(
         : Number(row.stock_quantity),
     createdAt: typeof row.created_at === "string" ? row.created_at : null,
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+  } satisfies Omit<AdminCatalogProduct, "publicVisibility">;
+
+  return {
+    ...mappedProduct,
+    publicVisibility: getAdminProductVisibilityInfo(mappedProduct),
   };
 }
 
@@ -270,13 +283,16 @@ function mapSeedProduct(
   const grossPrice = product.grossPriceClp ?? product.priceClpTaxInc;
   const netPrice = product.netPriceClp ?? Math.round(grossPrice / 1.19);
 
-  return {
+  const mappedProduct = {
     id: product.id,
     categoryId: category?.id ?? product.categoryId ?? "",
     categorySlug: product.categorySlug,
     categoryName: category?.name ?? product.categorySlug,
+    categoryExists: Boolean(category),
     categoryParentId: category?.parentId ?? null,
     categoryParentName: parentCategory?.name ?? null,
+    categoryIsActive: category?.isActive ?? true,
+    categoryIsVisible: category?.isVisible ?? true,
     name: product.name,
     slug: product.slug,
     sku: product.sku,
@@ -299,6 +315,11 @@ function mapSeedProduct(
     stockQuantity: product.stockQuantity ?? null,
     createdAt: null,
     updatedAt: null,
+  } satisfies Omit<AdminCatalogProduct, "publicVisibility">;
+
+  return {
+    ...mappedProduct,
+    publicVisibility: getAdminProductVisibilityInfo(mappedProduct),
   };
 }
 
@@ -765,7 +786,7 @@ export async function saveAdminProduct(input: ProductFormValues) {
   const client = await getMutationClient();
   const { data: category, error: categoryError } = await client
     .from("categories")
-    .select("id, slug")
+    .select("id, slug, parent_id")
     .eq("id", input.categoryId)
     .maybeSingle();
 
@@ -833,10 +854,20 @@ export async function saveAdminProduct(input: ProductFormValues) {
     input.galleryImages
   );
 
+  const { data: parentCategory } = category.parent_id
+    ? await client
+        .from("categories")
+        .select("slug")
+        .eq("id", category.parent_id)
+        .maybeSingle()
+    : { data: null };
+
   return {
     id: productId,
     slug: input.slug,
     categorySlug: String(category.slug ?? ""),
+    parentCategorySlug:
+      parentCategory?.slug ? String(parentCategory.slug) : undefined,
   };
 }
 
@@ -844,7 +875,7 @@ export async function hideAdminProduct(productId: string) {
   const client = await getMutationClient();
   const { data: product, error: productError } = await client
     .from("products")
-    .select("id, slug")
+    .select("id, slug, category_id")
     .eq("id", productId)
     .maybeSingle();
 
@@ -867,8 +898,167 @@ export async function hideAdminProduct(productId: string) {
     );
   }
 
+  const { data: category } = product.category_id
+    ? await client
+        .from("categories")
+        .select("slug, parent_id")
+        .eq("id", product.category_id)
+        .maybeSingle()
+    : { data: null };
+  const { data: parentCategory } = category?.parent_id
+    ? await client
+        .from("categories")
+        .select("slug")
+        .eq("id", category.parent_id)
+        .maybeSingle()
+    : { data: null };
+
   return {
     id: String(product.id),
     slug: String(product.slug ?? ""),
+    categorySlug: category?.slug ? String(category.slug) : undefined,
+    parentCategorySlug:
+      parentCategory?.slug ? String(parentCategory.slug) : undefined,
+  };
+}
+
+export async function deleteAdminProduct(productId: string) {
+  const client = await getMutationClient();
+  const { data: product, error: productError } = await client
+    .from("products")
+    .select("id, slug, category_id")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (productError || !product) {
+    throw new CatalogAdminError("El producto no existe o ya no esta disponible.");
+  }
+
+  const { count: orderCount, error: orderCountError } = await client
+    .from("order_items")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", productId);
+
+  if (orderCountError) {
+    throw new CatalogAdminError(
+      "No pudimos validar si el producto tiene ventas asociadas. Intenta nuevamente."
+    );
+  }
+
+  if ((orderCount ?? 0) > 0) {
+    throw new CatalogAdminError(
+      "No puedes eliminar este producto porque tiene pedidos asociados. Puedes archivarlo.",
+      "productHasOrders"
+    );
+  }
+
+  const { count: quoteCount, error: quoteCountError } = await client
+    .from("quote_request_items")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", productId);
+
+  if (quoteCountError) {
+    throw new CatalogAdminError(
+      "No pudimos validar si el producto tiene cotizaciones asociadas. Intenta nuevamente."
+    );
+  }
+
+  if ((quoteCount ?? 0) > 0) {
+    throw new CatalogAdminError(
+      "No puedes eliminar este producto porque tiene cotizaciones asociadas. Puedes archivarlo.",
+      "productHasQuotes"
+    );
+  }
+
+  const { data: category } = product.category_id
+    ? await client
+        .from("categories")
+        .select("slug, parent_id")
+        .eq("id", product.category_id)
+        .maybeSingle()
+    : { data: null };
+  const { data: parentCategory } = category?.parent_id
+    ? await client
+        .from("categories")
+        .select("slug")
+        .eq("id", category.parent_id)
+        .maybeSingle()
+    : { data: null };
+  const { error } = await client.from("products").delete().eq("id", productId);
+
+  if (error) {
+    throw new CatalogAdminError(
+      "No pudimos eliminar el producto. Si tiene actividad asociada, archivalo en lugar de eliminarlo."
+    );
+  }
+
+  return {
+    id: String(product.id),
+    slug: String(product.slug ?? ""),
+    categorySlug: category?.slug ? String(category.slug) : undefined,
+    parentCategorySlug:
+      parentCategory?.slug ? String(parentCategory.slug) : undefined,
+  };
+}
+
+export async function deleteAdminCategory(categoryId: string) {
+  const client = await getMutationClient();
+  const { data: category, error: categoryError } = await client
+    .from("categories")
+    .select("id, slug")
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (categoryError || !category) {
+    throw new CatalogAdminError("La categoria no existe o ya no esta disponible.");
+  }
+
+  const { count: childCount, error: childCountError } = await client
+    .from("categories")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_id", categoryId);
+
+  if (childCountError) {
+    throw new CatalogAdminError(
+      "No pudimos validar si la categoria tiene subcategorias. Intenta nuevamente."
+    );
+  }
+
+  if ((childCount ?? 0) > 0) {
+    throw new CatalogAdminError(
+      "No puedes eliminar esta categoria porque tiene subcategorias. Puedes desactivarla.",
+      "categoryHasChildren"
+    );
+  }
+
+  const { count: productCount, error: productCountError } = await client
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", categoryId);
+
+  if (productCountError) {
+    throw new CatalogAdminError(
+      "No pudimos validar si la categoria tiene productos asociados. Intenta nuevamente."
+    );
+  }
+
+  if ((productCount ?? 0) > 0) {
+    throw new CatalogAdminError(
+      "No puedes eliminar esta categoria porque tiene productos asociados. Puedes desactivarla.",
+      "categoryHasProducts"
+    );
+  }
+
+  const { error } = await client.from("categories").delete().eq("id", categoryId);
+
+  if (error) {
+    throw new CatalogAdminError(
+      "No pudimos eliminar la categoria. Si tiene contenido asociado, desactivala en lugar de eliminarla."
+    );
+  }
+
+  return {
+    id: String(category.id),
+    slug: String(category.slug ?? ""),
   };
 }
