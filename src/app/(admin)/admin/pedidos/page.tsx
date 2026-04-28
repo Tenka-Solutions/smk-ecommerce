@@ -557,8 +557,8 @@ export default async function AdminOrdersPage({
         <div
           className={`rounded-[1.5rem] border p-4 text-sm font-medium ${
             message.tone === "success"
-              ? "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_10%,var(--color-card)_90%)] text-[var(--color-success)]"
-              : "border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-card)_90%)] text-[var(--color-danger)]"
+              ? "border-[color-mix(in_srgb,var(--color-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-success)_16%,var(--color-card)_84%)] text-[var(--color-card-foreground)]"
+              : "border-[color-mix(in_srgb,var(--color-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_16%,var(--color-card)_84%)] text-[var(--color-card-foreground)]"
           }`}
         >
           {message.text}
@@ -566,7 +566,7 @@ export default async function AdminOrdersPage({
       ) : null}
 
       {pageData.warning ? (
-        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_10%,var(--color-card)_90%)] p-4 text-sm leading-7 text-[var(--color-warning)]">
+        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] p-4 text-sm leading-7 text-[var(--color-card-foreground)]">
           {pageData.warning}
         </div>
       ) : null}
@@ -649,7 +649,7 @@ export default async function AdminOrdersPage({
           returnTo={returnTo}
         />
       ) : params.detalle ? (
-        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_10%,var(--color-card)_90%)] p-4 text-sm leading-7 text-[var(--color-warning)]">
+        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] p-4 text-sm leading-7 text-[var(--color-card-foreground)]">
           No encontramos el pedido seleccionado. Puede haber sido filtrado o no
           estar disponible.
         </div>

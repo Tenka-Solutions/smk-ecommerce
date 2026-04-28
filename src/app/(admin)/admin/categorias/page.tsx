@@ -49,8 +49,8 @@ function CategoryStatusPill({ isActive }: { isActive: boolean }) {
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
         isActive
-          ? "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]"
-          : "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]"
+          ? "border-[color-mix(in_srgb,var(--color-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-success)_18%,var(--color-card)_82%)] text-[var(--color-card-foreground)]"
+          : "border-[color-mix(in_srgb,var(--color-muted-foreground)_38%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-surface-strong)_72%,var(--color-card)_28%)] text-[var(--color-card-foreground)]"
       }`}
     >
       {isActive ? "Activa" : "Inactiva"}
@@ -238,8 +238,8 @@ export default async function AdminCategoriesPage({
         <div
           className={`rounded-[1.5rem] border p-4 text-sm font-medium ${
             message.tone === "success"
-              ? "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_10%,var(--color-card)_90%)] text-[var(--color-success)]"
-              : "border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-card)_90%)] text-[var(--color-danger)]"
+              ? "border-[color-mix(in_srgb,var(--color-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-success)_16%,var(--color-card)_84%)] text-[var(--color-card-foreground)]"
+              : "border-[color-mix(in_srgb,var(--color-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_16%,var(--color-card)_84%)] text-[var(--color-card-foreground)]"
           }`}
         >
           {message.text}
@@ -247,7 +247,7 @@ export default async function AdminCategoriesPage({
       ) : null}
 
       {pageData.warning ? (
-        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_10%,var(--color-card)_90%)] p-4 text-sm leading-7 text-[var(--color-warning)]">
+        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] p-4 text-sm leading-7 text-[var(--color-card-foreground)]">
           {pageData.warning}
         </div>
       ) : null}
@@ -289,7 +289,7 @@ export default async function AdminCategoriesPage({
 
         {orphanChildren.length > 0 ? (
           <div className="grid gap-3 rounded-[1.75rem] border border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,var(--color-card)_92%)] p-4">
-            <p className="text-sm font-semibold text-[var(--color-warning)]">
+            <p className="text-sm font-semibold text-[var(--color-card-foreground)]">
               Subcategorias con padre no encontrado
             </p>
             {orphanChildren.map((child) => (
