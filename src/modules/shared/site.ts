@@ -36,7 +36,8 @@ export const siteConfig = {
 export const publicNavigation = [
   { href: "/tienda", label: "Tienda" },
   { href: "/categorias/maquinas", label: "Máquinas" },
-  { href: "/categorias/cafe-grano", label: "Café en grano" },
+  { href: "/categorias/cafe-insumos", label: "Café e insumos" },
+  { href: "/categorias/vasos-accesorios", label: "Vasos y accesorios" },
   { href: "/cotizar", label: "Cotizar" },
   { href: "/nosotros", label: "Nosotros" },
   { href: "/contacto", label: "Contacto" },

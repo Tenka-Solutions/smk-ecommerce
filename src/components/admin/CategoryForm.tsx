@@ -100,7 +100,7 @@ export function CategoryForm({
       </div>
 
       {state.status === "error" && state.message ? (
-        <div className="mt-6 rounded-[1.25rem] border border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_10%,var(--color-card)_90%)] p-4 text-sm font-medium text-[var(--color-danger)]">
+        <div className="mt-6 rounded-[1.25rem] border border-[color-mix(in_srgb,var(--color-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_16%,var(--color-card)_84%)] p-4 text-sm font-medium text-[var(--color-card-foreground)]">
           {state.message}
         </div>
       ) : null}

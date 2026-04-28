@@ -1,8 +1,4 @@
-export type CatalogCategorySlug =
-  | "maquinas"
-  | "cafe-grano"
-  | "cafe-instantaneo"
-  | "accesorios-vasos";
+export type CatalogCategorySlug = string;
 
 export type AvailabilityStatus =
   | "available"

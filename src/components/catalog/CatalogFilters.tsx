@@ -2,9 +2,25 @@
 
 import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { catalogSeedCategories } from "@/modules/catalog/seed";
+import type { CatalogCategory } from "@/modules/catalog/types";
 
-export function CatalogFilters() {
+function getCategoryLabel(
+  category: CatalogCategory,
+  categories: CatalogCategory[]
+) {
+  if (!category.parentId) {
+    return category.name;
+  }
+
+  const parent = categories.find((entry) => entry.id === category.parentId);
+  return parent ? `- ${category.name}` : category.name;
+}
+
+export function CatalogFilters({
+  categories,
+}: {
+  categories: CatalogCategory[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,9 +54,9 @@ export function CatalogFilters() {
         onChange={(event) => updateParam("categoria", event.target.value)}
       >
         <option value="">Todas las categorías</option>
-        {catalogSeedCategories.map((category) => (
+        {categories.map((category) => (
           <option key={category.id} value={category.slug}>
-            {category.name}
+            {getCategoryLabel(category, categories)}
           </option>
         ))}
       </select>

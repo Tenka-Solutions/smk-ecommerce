@@ -2,7 +2,6 @@ import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   CatalogCategory,
-  CatalogCategorySlug,
   CatalogFilters,
   CatalogProduct,
 } from "@/modules/catalog/types";
@@ -11,6 +10,17 @@ import {
   catalogSeedProducts,
 } from "@/modules/catalog/seed";
 
+const publicCategorySlugAliases: Record<string, string> = {
+  "cafe-grano": "cafe-en-grano",
+  "cafe-instantaneo": "cafe-insumos",
+  "accesorios-vasos": "vasos-accesorios",
+};
+
+const publicParentCategoryLegacySlugs: Record<string, string[]> = {
+  "cafe-insumos": ["cafe-grano", "cafe-instantaneo"],
+  "vasos-accesorios": ["accesorios-vasos"],
+};
+
 function normalizeText(value: string) {
   return value
     .toLowerCase()
@@ -18,14 +28,128 @@ function normalizeText(value: string) {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-function applyFilters(products: CatalogProduct[], filters: CatalogFilters = {}) {
+function isPublicCategory(category: CatalogCategory) {
+  return category.isVisible && (category.isActive ?? true);
+}
+
+function hasCategorySlug(categories: CatalogCategory[], slug: string) {
+  return categories.some((category) => category.slug === slug);
+}
+
+function resolveCategorySlug(slug: string, categories: CatalogCategory[]) {
+  const canonicalSlug = publicCategorySlugAliases[slug];
+
+  if (canonicalSlug && hasCategorySlug(categories, canonicalSlug)) {
+    return canonicalSlug;
+  }
+
+  return slug;
+}
+
+function shouldShowCategoryInPublicNavigation(
+  category: CatalogCategory,
+  categories: CatalogCategory[]
+) {
+  if (!isPublicCategory(category)) {
+    return false;
+  }
+
+  const canonicalSlug = publicCategorySlugAliases[category.slug];
+  return !(canonicalSlug && hasCategorySlug(categories, canonicalSlug));
+}
+
+function getEquivalentCategorySlugs(
+  slug: string,
+  categories: CatalogCategory[]
+) {
+  const canonicalSlug = resolveCategorySlug(slug, categories);
+  const slugs = new Set([slug, canonicalSlug]);
+
+  Object.entries(publicCategorySlugAliases).forEach(([legacySlug]) => {
+    if (resolveCategorySlug(legacySlug, categories) === canonicalSlug) {
+      slugs.add(legacySlug);
+    }
+  });
+
+  publicParentCategoryLegacySlugs[canonicalSlug]?.forEach((legacySlug) => {
+    slugs.add(legacySlug);
+  });
+
+  return slugs;
+}
+
+function collectCategoryAndDescendantIds(
+  categories: CatalogCategory[],
+  category: CatalogCategory
+) {
+  const ids = new Set([category.id]);
+  const pending = [category.id];
+
+  while (pending.length > 0) {
+    const parentId = pending.shift();
+    const children = categories.filter(
+      (candidate) => candidate.parentId === parentId
+    );
+
+    children.forEach((child) => {
+      if (!ids.has(child.id)) {
+        ids.add(child.id);
+        pending.push(child.id);
+      }
+    });
+  }
+
+  return ids;
+}
+
+function getProductCategoryId(
+  product: CatalogProduct,
+  categories: CatalogCategory[]
+) {
+  return (
+    product.categoryId ??
+    categories.find((category) => category.slug === product.categorySlug)?.id ??
+    null
+  );
+}
+
+function getCategoryIdsForSlug(
+  categories: CatalogCategory[],
+  slug: string
+) {
+  const equivalentSlugs = getEquivalentCategorySlugs(slug, categories);
+  const ids = new Set<string>();
+
+  categories
+    .filter((category) => equivalentSlugs.has(category.slug))
+    .forEach((category) => {
+      collectCategoryAndDescendantIds(categories, category).forEach((id) =>
+        ids.add(id)
+      );
+    });
+
+  return ids;
+}
+
+function applyFilters(
+  products: CatalogProduct[],
+  categories: CatalogCategory[],
+  filters: CatalogFilters = {}
+) {
+  const publicCategoryIds = new Set(
+    categories.filter(isPublicCategory).map((category) => category.id)
+  );
   let result = products.filter(
-    (product) => product.publicationStatus === "published"
+    (product) =>
+      product.publicationStatus === "published" &&
+      product.priceClpTaxInc > 0 &&
+      publicCategoryIds.has(getProductCategoryId(product, categories) ?? "")
   );
 
   if (filters.category) {
-    result = result.filter(
-      (product) => product.categorySlug === filters.category
+    const categoryIds = getCategoryIdsForSlug(categories, filters.category);
+    result = result.filter((product) =>
+      categoryIds.has(getProductCategoryId(product, categories) ?? "")
     );
   }
 
@@ -42,6 +166,8 @@ function applyFilters(products: CatalogProduct[], filters: CatalogFilters = {}) 
           product.shortDescription,
           product.longDescription,
           product.sku ?? "",
+          product.ean ?? "",
+          product.brand ?? "",
           product.highlights.join(" "),
         ].join(" ")
       ).includes(normalizedQuery)
@@ -163,19 +289,33 @@ const readCatalogFromSupabase = cache(async () => {
 
 export async function getCatalogCategories() {
   const remoteCatalog = await readCatalogFromSupabase();
-  return (remoteCatalog?.categories ?? catalogSeedCategories).filter(
-    (category) => category.isVisible
+  const categories = remoteCatalog?.categories ?? catalogSeedCategories;
+
+  return categories.filter((category) =>
+    shouldShowCategoryInPublicNavigation(category, categories)
   );
 }
 
 export async function getCatalogCategoryBySlug(slug: string) {
-  const categories = await getCatalogCategories();
-  return categories.find((category) => category.slug === slug) ?? null;
+  const remoteCatalog = await readCatalogFromSupabase();
+  const categories = (remoteCatalog?.categories ?? catalogSeedCategories).filter(
+    isPublicCategory
+  );
+  const resolvedSlug = resolveCategorySlug(slug, categories);
+
+  return (
+    categories.find((category) => category.slug === resolvedSlug) ??
+    categories.find((category) => category.slug === slug) ??
+    null
+  );
 }
 
 export async function getCatalogProducts(filters: CatalogFilters = {}) {
   const remoteCatalog = await readCatalogFromSupabase();
-  return applyFilters(remoteCatalog?.products ?? catalogSeedProducts, filters);
+  const categories = remoteCatalog?.categories ?? catalogSeedCategories;
+  const products = remoteCatalog?.products ?? catalogSeedProducts;
+
+  return applyFilters(products, categories, filters);
 }
 
 export async function getFeaturedCatalogProducts(limit = 6) {
@@ -191,9 +331,7 @@ export async function getCatalogProductBySlug(slug: string) {
   return products.find((product) => product.slug === slug) ?? null;
 }
 
-export async function getCatalogProductsByCategory(
-  category: CatalogCategorySlug
-) {
+export async function getCatalogProductsByCategory(category: string) {
   return getCatalogProducts({ category });
 }
 
