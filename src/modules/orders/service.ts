@@ -12,10 +12,12 @@ type PaymentStatus = "pending" | "paid" | "rejected" | "cancelled";
 type OrderStatus =
   | "pending"
   | "paid"
+  | "processing"
   | "rejected"
   | "cancelled"
   | "preparing"
   | "shipped"
+  | "completed"
   | "delivered";
 
 interface OrderRow {
@@ -30,6 +32,9 @@ interface OrderRow {
   phone: string | null;
   tax_amount: number | null;
   shipping_label: string | null;
+  archived_at?: string | null;
+  archived_by?: string | null;
+  internal_note?: string | null;
 }
 
 interface OrderAddressRow {
@@ -89,6 +94,9 @@ export interface OrderListItem {
   paymentStatus: PaymentStatus;
   totalTaxInc: number;
   createdAt: string | null;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  internalNote: string | null;
 }
 
 export interface OrderDetail extends OrderListItem {
@@ -131,6 +139,9 @@ function toOrderListItem(order: OrderRow): OrderListItem {
     paymentStatus: order.payment_status,
     totalTaxInc: order.total_tax_inc ?? 0,
     createdAt: order.created_at ?? null,
+    archivedAt: order.archived_at ?? null,
+    archivedBy: order.archived_by ?? null,
+    internalNote: order.internal_note ?? null,
   };
 }
 
@@ -179,7 +190,7 @@ export async function createOrderDraft(input: CreateOrderDraftInput) {
       throw new Error("Uno o mas productos del carrito ya no estan disponibles.");
     }
 
-    if (product.availabilityStatus === "sold_out") {
+    if (["sold_out", "draft", "hidden"].includes(product.availabilityStatus)) {
       throw new Error(
         `El producto ${product.name} no esta disponible para compra directa.`
       );

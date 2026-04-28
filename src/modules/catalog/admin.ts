@@ -1,0 +1,555 @@
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  ADMIN_PRODUCT_STATUSES,
+  AdminProductStatus,
+  ProductFormFieldErrors,
+  ProductFormValues,
+  isPlaceholderSku,
+} from "@/modules/catalog/admin-schema";
+import { getAuthenticatedUserRoles } from "@/modules/auth/server";
+import { getAdminCatalogSnapshot } from "@/modules/catalog/repository";
+import {
+  AvailabilityStatus,
+  CatalogCategory,
+  CatalogProduct,
+  PublicationStatus,
+} from "@/modules/catalog/types";
+
+const MUTATION_ROLES = ["super_admin", "catalog_editor"];
+const READ_ROLES = [...MUTATION_ROLES, "sales_manager"];
+
+export class CatalogAdminError extends Error {
+  constructor(
+    message: string,
+    public readonly field?: keyof ProductFormFieldErrors
+  ) {
+    super(message);
+    this.name = "CatalogAdminError";
+  }
+}
+
+export interface AdminCatalogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  imageUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  isVisible: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface AdminCatalogProduct {
+  id: string;
+  categoryId: string;
+  categorySlug: string;
+  categoryName: string;
+  name: string;
+  slug: string;
+  sku: string | null;
+  shortDescription: string;
+  longDescription: string;
+  netPriceClp: number;
+  grossPriceClp: number;
+  priceClpTaxInc: number;
+  primaryImagePath: string;
+  galleryImages: string[];
+  availabilityStatus: AdminProductStatus;
+  publicationStatus: PublicationStatus;
+  isFeatured: boolean;
+  sortOrder: number;
+  seoTitle: string;
+  seoDescription: string;
+  highlights: string[];
+  brand: string | null;
+  stockQuantity: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface AdminCatalogPageData {
+  source: "supabase" | "seed";
+  categories: AdminCatalogCategory[];
+  products: AdminCatalogProduct[];
+  totalProducts: number;
+  canMutate: boolean;
+  warning?: string;
+}
+
+export interface AdminProductFilters {
+  query?: string;
+  categoryId?: string;
+  status?: AdminProductStatus;
+}
+
+function hasAnyRole(roles: string[], allowedRoles: string[]) {
+  return roles.some((role) => allowedRoles.includes(role));
+}
+
+async function getReadContext() {
+  const roles = await getAuthenticatedUserRoles();
+
+  if (!hasAnyRole(roles, READ_ROLES)) {
+    throw new CatalogAdminError("No tienes permisos para ver productos.");
+  }
+
+  return {
+    roles,
+    canMutate: hasAnyRole(roles, MUTATION_ROLES),
+  };
+}
+
+async function getMutationClient() {
+  const roles = await getAuthenticatedUserRoles();
+
+  if (!hasAnyRole(roles, MUTATION_ROLES)) {
+    throw new CatalogAdminError(
+      "Solo super administradores o editores de catalogo pueden modificar productos."
+    );
+  }
+
+  const client = createSupabaseAdminClient();
+
+  if (!client) {
+    throw new CatalogAdminError(
+      "Supabase admin no esta configurado. Revisa SUPABASE_SERVICE_ROLE_KEY en el entorno servidor."
+    );
+  }
+
+  return client;
+}
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
+function toAdminStatus(value: string | null | undefined): AdminProductStatus {
+  return ADMIN_PRODUCT_STATUSES.includes(value as AdminProductStatus)
+    ? (value as AdminProductStatus)
+    : "available";
+}
+
+function mapCategory(row: Record<string, unknown>): AdminCatalogCategory {
+  return {
+    id: String(row.id),
+    name: String(row.name ?? ""),
+    slug: String(row.slug ?? ""),
+    description: String(row.description ?? ""),
+    imageUrl: typeof row.image_url === "string" ? row.image_url : null,
+    sortOrder: Number(row.sort_order ?? 0),
+    isActive: Boolean(row.is_active ?? row.is_visible ?? true),
+    isVisible: Boolean(row.is_visible ?? row.is_active ?? true),
+    createdAt: typeof row.created_at === "string" ? row.created_at : null,
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+  };
+}
+
+function mapSeedCategory(category: CatalogCategory): AdminCatalogCategory {
+  return {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    imageUrl: category.imageUrl ?? null,
+    sortOrder: category.sortOrder,
+    isActive: category.isActive ?? category.isVisible,
+    isVisible: category.isVisible,
+    createdAt: null,
+    updatedAt: null,
+  };
+}
+
+function mapProduct(
+  row: Record<string, unknown>,
+  categories: AdminCatalogCategory[]
+): AdminCatalogProduct {
+  const category = categories.find((entry) => entry.id === row.category_id);
+  const grossPrice = Number(
+    row.gross_price_clp ?? row.price_clp_tax_inc ?? 0
+  );
+  const netPrice = Number(
+    row.net_price_clp ?? Math.round(grossPrice / 1.19)
+  );
+  const primaryImagePath =
+    typeof row.primary_image_path === "string" ? row.primary_image_path : "";
+  const galleryImages = Array.isArray(row.gallery_images)
+    ? row.gallery_images.filter(
+        (image): image is string =>
+          typeof image === "string" && image.trim().length > 0
+      )
+    : [];
+  const highlights = Array.isArray(row.highlights)
+    ? row.highlights.filter(
+        (highlight): highlight is string =>
+          typeof highlight === "string" && highlight.trim().length > 0
+      )
+    : [];
+
+  return {
+    id: String(row.id),
+    categoryId: String(row.category_id ?? ""),
+    categorySlug: category?.slug ?? "",
+    categoryName: category?.name ?? "Sin categoria",
+    name: String(row.name ?? ""),
+    slug: String(row.slug ?? ""),
+    sku: typeof row.sku === "string" && row.sku.trim() ? row.sku : null,
+    shortDescription: String(row.short_description ?? ""),
+    longDescription: String(row.long_description ?? ""),
+    netPriceClp: netPrice,
+    grossPriceClp: grossPrice,
+    priceClpTaxInc: Number(row.price_clp_tax_inc ?? grossPrice),
+    primaryImagePath,
+    galleryImages,
+    availabilityStatus: toAdminStatus(row.availability_status as string),
+    publicationStatus: (row.publication_status ?? "draft") as PublicationStatus,
+    isFeatured: Boolean(row.is_featured ?? false),
+    sortOrder: Number(row.sort_order ?? 0),
+    seoTitle: String(row.seo_title ?? row.name ?? ""),
+    seoDescription: String(row.seo_description ?? row.short_description ?? ""),
+    highlights,
+    brand: typeof row.brand === "string" && row.brand.trim() ? row.brand : null,
+    stockQuantity:
+      row.stock_quantity === null || row.stock_quantity === undefined
+        ? null
+        : Number(row.stock_quantity),
+    createdAt: typeof row.created_at === "string" ? row.created_at : null,
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
+  };
+}
+
+function mapSeedProduct(
+  product: CatalogProduct,
+  categories: AdminCatalogCategory[]
+): AdminCatalogProduct {
+  const category = categories.find((entry) => entry.slug === product.categorySlug);
+  const grossPrice = product.grossPriceClp ?? product.priceClpTaxInc;
+  const netPrice = product.netPriceClp ?? Math.round(grossPrice / 1.19);
+
+  return {
+    id: product.id,
+    categoryId: category?.id ?? product.categoryId ?? "",
+    categorySlug: product.categorySlug,
+    categoryName: category?.name ?? product.categorySlug,
+    name: product.name,
+    slug: product.slug,
+    sku: product.sku,
+    shortDescription: product.shortDescription,
+    longDescription: product.longDescription,
+    netPriceClp: netPrice,
+    grossPriceClp: grossPrice,
+    priceClpTaxInc: product.priceClpTaxInc,
+    primaryImagePath: product.image,
+    galleryImages: product.gallery.filter((image) => image !== product.image),
+    availabilityStatus: toAdminStatus(product.availabilityStatus),
+    publicationStatus: product.publicationStatus,
+    isFeatured: product.isFeatured,
+    sortOrder: product.sortOrder,
+    seoTitle: product.seoTitle,
+    seoDescription: product.seoDescription,
+    highlights: product.highlights,
+    brand: product.brand ?? null,
+    stockQuantity: product.stockQuantity ?? null,
+    createdAt: null,
+    updatedAt: null,
+  };
+}
+
+function applyFilters(
+  products: AdminCatalogProduct[],
+  filters: AdminProductFilters
+) {
+  let filtered = [...products];
+
+  if (filters.query?.trim()) {
+    const query = normalizeText(filters.query);
+    filtered = filtered.filter((product) =>
+      normalizeText(
+        [
+          product.name,
+          product.sku ?? "",
+          product.brand ?? "",
+          product.categoryName,
+          product.shortDescription,
+        ].join(" ")
+      ).includes(query)
+    );
+  }
+
+  if (filters.categoryId?.trim()) {
+    filtered = filtered.filter(
+      (product) => product.categoryId === filters.categoryId
+    );
+  }
+
+  if (filters.status) {
+    filtered = filtered.filter(
+      (product) => product.availabilityStatus === filters.status
+    );
+  }
+
+  return filtered.sort((left, right) => {
+    if (left.sortOrder !== right.sortOrder) {
+      return left.sortOrder - right.sortOrder;
+    }
+
+    return left.name.localeCompare(right.name, "es");
+  });
+}
+
+async function getFallbackCatalogPageData(
+  filters: AdminProductFilters,
+  canMutate: boolean,
+  warning: string
+): Promise<AdminCatalogPageData> {
+  const snapshot = await getAdminCatalogSnapshot();
+  const categories = snapshot.categories.map(mapSeedCategory);
+  const products = snapshot.products.map((product) =>
+    mapSeedProduct(product, categories)
+  );
+
+  return {
+    source: "seed",
+    categories,
+    products: applyFilters(products, filters),
+    totalProducts: products.length,
+    canMutate,
+    warning,
+  };
+}
+
+export async function getAdminProductsPageData(
+  filters: AdminProductFilters = {}
+): Promise<AdminCatalogPageData> {
+  const { canMutate } = await getReadContext();
+  const client = createSupabaseAdminClient();
+
+  if (!client) {
+    return getFallbackCatalogPageData(
+      filters,
+      canMutate,
+      "Supabase admin no esta configurado; se muestra el seed local en modo lectura."
+    );
+  }
+
+  const [categoriesResponse, productsResponse] = await Promise.all([
+    client
+      .from("categories")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+    client
+      .from("products")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  if (categoriesResponse.error || productsResponse.error) {
+    return getFallbackCatalogPageData(
+      filters,
+      canMutate,
+      categoriesResponse.error?.message ??
+        productsResponse.error?.message ??
+        "No fue posible leer Supabase; se muestra el seed local."
+    );
+  }
+
+  const categories = (categoriesResponse.data ?? []).map((category) =>
+    mapCategory(category)
+  );
+  const products = (productsResponse.data ?? []).map((product) =>
+    mapProduct(product, categories)
+  );
+
+  return {
+    source: "supabase",
+    categories,
+    products: applyFilters(products, filters),
+    totalProducts: products.length,
+    canMutate,
+  };
+}
+
+export async function getAdminProductById(productId: string) {
+  if (!productId) {
+    return null;
+  }
+
+  const { products } = await getAdminProductsPageData();
+  return products.find((product) => product.id === productId) ?? null;
+}
+
+async function ensureUniqueProductValue({
+  field,
+  value,
+  productId,
+  label,
+}: {
+  field: "slug" | "sku";
+  value: string;
+  productId?: string;
+  label: string;
+}) {
+  const client = await getMutationClient();
+  let query = client.from("products").select("id").eq(field, value).limit(1);
+
+  if (productId) {
+    query = query.neq("id", productId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new CatalogAdminError(
+      `No pudimos validar el ${label}. Intenta nuevamente.`,
+      field
+    );
+  }
+
+  if ((data ?? []).length > 0) {
+    throw new CatalogAdminError(`Ya existe un producto con este ${label}.`, field);
+  }
+}
+
+async function syncProductImages(
+  productId: string,
+  productName: string,
+  primaryImagePath: string,
+  galleryImages: string[]
+) {
+  const client = await getMutationClient();
+  const imagePaths = Array.from(
+    new Set([primaryImagePath, ...galleryImages].filter(Boolean))
+  );
+
+  await client.from("product_images").delete().eq("product_id", productId);
+
+  if (imagePaths.length === 0) {
+    return;
+  }
+
+  await client.from("product_images").insert(
+    imagePaths.map((storagePath, index) => ({
+      product_id: productId,
+      storage_path: storagePath,
+      alt_text: productName,
+      sort_order: index,
+      is_primary: index === 0,
+    }))
+  );
+}
+
+export async function saveAdminProduct(input: ProductFormValues) {
+  const client = await getMutationClient();
+  const { data: category, error: categoryError } = await client
+    .from("categories")
+    .select("id, slug")
+    .eq("id", input.categoryId)
+    .maybeSingle();
+
+  if (categoryError || !category) {
+    throw new CatalogAdminError(
+      "La categoria seleccionada no existe o no esta disponible.",
+      "categoryId"
+    );
+  }
+
+  await ensureUniqueProductValue({
+    field: "slug",
+    value: input.slug,
+    productId: input.productId,
+    label: "slug",
+  });
+
+  if (input.sku && !isPlaceholderSku(input.sku)) {
+    await ensureUniqueProductValue({
+      field: "sku",
+      value: input.sku,
+      productId: input.productId,
+      label: "SKU",
+    });
+  }
+
+  const productId = input.productId || input.slug;
+  const payload = {
+    category_id: input.categoryId,
+    name: input.name,
+    slug: input.slug,
+    sku: input.sku,
+    short_description: input.shortDescription,
+    long_description: input.longDescription,
+    price_clp_tax_inc: input.grossPriceClp,
+    gross_price_clp: input.grossPriceClp,
+    net_price_clp: input.netPriceClp,
+    availability_status: input.availabilityStatus,
+    publication_status: input.publicationStatus,
+    is_featured: input.isFeatured,
+    sort_order: input.sortOrder,
+    seo_title: input.seoTitle,
+    seo_description: input.seoDescription,
+    primary_image_path: input.primaryImagePath || null,
+    gallery_images: input.galleryImages,
+    highlights: input.highlights,
+    brand: input.brand,
+    stock_quantity: input.stockQuantity,
+  };
+  const response = input.productId
+    ? await client.from("products").update(payload).eq("id", input.productId)
+    : await client.from("products").insert({ id: productId, ...payload });
+
+  if (response.error) {
+    throw new CatalogAdminError(
+      response.error.message || "No fue posible guardar el producto."
+    );
+  }
+
+  await syncProductImages(
+    productId,
+    input.name,
+    input.primaryImagePath,
+    input.galleryImages
+  );
+
+  return {
+    id: productId,
+    slug: input.slug,
+    categorySlug: String(category.slug ?? ""),
+  };
+}
+
+export async function hideAdminProduct(productId: string) {
+  const client = await getMutationClient();
+  const { data: product, error: productError } = await client
+    .from("products")
+    .select("id, slug")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (productError || !product) {
+    throw new CatalogAdminError("El producto no existe o ya no esta disponible.");
+  }
+
+  const { error } = await client
+    .from("products")
+    .update({
+      availability_status: "hidden" satisfies AvailabilityStatus,
+      publication_status: "archived" satisfies PublicationStatus,
+      is_featured: false,
+    })
+    .eq("id", productId);
+
+  if (error) {
+    throw new CatalogAdminError(
+      error.message || "No fue posible ocultar el producto."
+    );
+  }
+
+  return {
+    id: String(product.id),
+    slug: String(product.slug ?? ""),
+  };
+}
+

@@ -51,6 +51,41 @@ const statusMap = {
     className:
       "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
   },
+  available: {
+    label: "Disponible",
+    className:
+      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+  },
+  check_availability: {
+    label: "Consultar",
+    className:
+      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+  },
+  sold_out: {
+    label: "Agotado",
+    className:
+      "border-[color-mix(in_srgb,var(--color-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)] text-[var(--color-danger)]",
+  },
+  draft: {
+    label: "Borrador",
+    className:
+      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+  },
+  hidden: {
+    label: "Oculto",
+    className:
+      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+  },
+  published: {
+    label: "Publicado",
+    className:
+      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
+  },
+  archived: {
+    label: "Archivado",
+    className:
+      "border-[color-mix(in_srgb,var(--color-muted-foreground)_24%,transparent)] bg-[color-mix(in_srgb,var(--color-muted)_42%,var(--color-card)_58%)] text-[var(--color-muted-foreground)]",
+  },
 } as const;
 
 export function StatusBadge({

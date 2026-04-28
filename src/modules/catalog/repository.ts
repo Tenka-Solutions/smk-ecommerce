@@ -20,7 +20,9 @@ function normalizeText(value: string) {
 
 function applyFilters(products: CatalogProduct[], filters: CatalogFilters = {}) {
   let result = products.filter(
-    (product) => product.publicationStatus === "published"
+    (product) =>
+      product.publicationStatus === "published" &&
+      !["draft", "hidden"].includes(product.availabilityStatus)
   );
 
   if (filters.category) {
@@ -97,11 +99,14 @@ const readCatalogFromSupabase = cache(async () => {
     const categories = (categoriesResponse.data ?? []).map(
       (category): CatalogCategory => ({
         id: category.id,
+        parentId: category.parent_id ?? null,
         slug: category.slug,
         name: category.name,
         description: category.description ?? "",
+        imageUrl: category.image_url ?? null,
         sortOrder: category.sort_order ?? 0,
-        isVisible: category.is_visible ?? true,
+        isVisible: category.is_visible ?? category.is_active ?? true,
+        isActive: category.is_active ?? category.is_visible ?? true,
         seoTitle: category.seo_title ?? category.name,
         seoDescription:
           category.seo_description ?? category.description ?? category.name,
@@ -112,29 +117,43 @@ const readCatalogFromSupabase = cache(async () => {
       const categoryFromId = categories.find(
         (category) => category.id === product.category_id
       );
+      const primaryImage =
+        product.primary_image_path ?? "/catalog/cutouts/image1.png";
+      const galleryImages = Array.isArray(product.gallery_images)
+        ? product.gallery_images.filter(Boolean)
+        : [];
+      const gallery = Array.from(new Set([primaryImage, ...galleryImages]));
+      const grossPrice =
+        product.gross_price_clp ?? product.price_clp_tax_inc ?? 0;
+      const netPrice =
+        product.net_price_clp ?? Math.round(grossPrice / 1.19);
 
       return {
         id: product.id,
         slug: product.slug,
         sku: product.sku ?? null,
+        ean: product.ean ?? null,
+        categoryId: product.category_id,
         categorySlug:
           product.category_slug ?? categoryFromId?.slug ?? "accesorios-vasos",
         name: product.name,
         shortDescription: product.short_description ?? "",
         longDescription: product.long_description ?? "",
-        priceClpTaxInc: product.price_clp_tax_inc ?? 0,
-        image: product.primary_image_path ?? "/catalog/cutouts/image1.png",
-        gallery: product.primary_image_path
-          ? [product.primary_image_path]
-          : ["/catalog/cutouts/image1.png"],
+        netPriceClp: netPrice,
+        grossPriceClp: grossPrice,
+        priceClpTaxInc: grossPrice,
+        image: primaryImage,
+        gallery,
         publicationStatus: product.publication_status ?? "published",
         availabilityStatus: product.availability_status ?? "available",
         isFeatured: product.is_featured ?? false,
+        brand: product.brand ?? null,
+        stockQuantity: product.stock_quantity ?? null,
         seoTitle: product.seo_title ?? product.name,
         seoDescription:
           product.seo_description ?? product.short_description ?? product.name,
         sortOrder: product.sort_order ?? 0,
-        highlights: [],
+        highlights: Array.isArray(product.highlights) ? product.highlights : [],
       } satisfies CatalogProduct;
     });
 

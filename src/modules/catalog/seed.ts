@@ -36,6 +36,7 @@ function category(
     description,
     sortOrder,
     isVisible: true,
+    isActive: true,
     seoTitle: `${name} | SMK Vending`,
     seoDescription: description,
   };
@@ -50,6 +51,8 @@ function product(input: ProductSeedInput): CatalogProduct {
     name: input.name,
     shortDescription: input.shortDescription,
     longDescription: input.longDescription ?? input.shortDescription,
+    netPriceClp: input.netPriceClp,
+    grossPriceClp: addVat(input.netPriceClp),
     priceClpTaxInc: addVat(input.netPriceClp),
     image: input.image,
     gallery: [input.image],
