@@ -5,16 +5,27 @@ import { StatusBadge } from "@/components/feedback/StatusBadge";
 import { formatClp } from "@/lib/format/currency";
 import {
   ADMIN_PRODUCT_STATUSES,
+  ADMIN_PUBLICATION_STATUSES,
 } from "@/modules/catalog/admin-schema";
-import type { AdminProductStatus } from "@/modules/catalog/admin-schema";
+import type {
+  AdminProductStatus,
+  AdminPublicationStatus,
+} from "@/modules/catalog/admin-schema";
 import { getAdminProductsPageData } from "@/modules/catalog/admin";
-import type { AdminCatalogProduct } from "@/modules/catalog/admin";
+import type {
+  AdminCatalogCategory,
+  AdminCatalogProduct,
+} from "@/modules/catalog/admin";
 import { hideProductAction } from "@/app/(admin)/admin/productos/actions";
 
 type SearchParams = Promise<{
   q?: string;
   categoria?: string;
+  categoriaPadre?: string;
+  subcategoria?: string;
   estadoProducto?: string;
+  estadoDisponibilidad?: string;
+  estadoPublicacion?: string;
   editar?: string;
   nuevo?: string;
   estado?: string;
@@ -42,6 +53,12 @@ function toProductStatus(value?: string): AdminProductStatus | undefined {
     : undefined;
 }
 
+function toPublicationStatus(value?: string): AdminPublicationStatus | undefined {
+  return ADMIN_PUBLICATION_STATUSES.includes(value as AdminPublicationStatus)
+    ? (value as AdminPublicationStatus)
+    : undefined;
+}
+
 function buildProductsHref(params: Record<string, string | undefined>) {
   const query = new URLSearchParams();
 
@@ -52,6 +69,24 @@ function buildProductsHref(params: Record<string, string | undefined>) {
   });
 
   return `/admin/productos${query.size ? `?${query.toString()}` : ""}`;
+}
+
+function getCategoryPath(product: AdminCatalogProduct) {
+  return product.categoryParentName
+    ? `${product.categoryParentName} / ${product.categoryName}`
+    : product.categoryName;
+}
+
+function getCategoryOptionLabel(
+  category: AdminCatalogCategory,
+  categories: AdminCatalogCategory[]
+) {
+  if (!category.parentId) {
+    return category.name;
+  }
+
+  const parent = categories.find((entry) => entry.id === category.parentId);
+  return parent ? `${parent.name} / ${category.name}` : category.name;
 }
 
 function ProductAdminCard({
@@ -85,8 +120,13 @@ function ProductAdminCard({
           </h3>
           {product.isFeatured ? <StatusBadge status="published" /> : null}
         </div>
+
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          {product.categoryName} · SKU {product.sku ?? "sin SKU"}
+          {getCategoryPath(product)}
+        </p>
+        <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+          SKU {product.sku ?? "sin SKU"} · EAN {product.ean ?? "sin EAN"} ·
+          Marca {product.brand ?? "sin marca"}
         </p>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--color-muted-foreground)]">
           {product.shortDescription || "Sin descripcion corta"}
@@ -109,7 +149,7 @@ function ProductAdminCard({
             {formatClp(product.grossPriceClp)}
           </p>
           <p className="text-xs text-[var(--color-muted-foreground)]">
-            Orden {product.sortOrder}
+            Neto {formatClp(product.netPriceClp)} · Orden {product.sortOrder}
           </p>
         </div>
 
@@ -143,10 +183,16 @@ export default async function AdminProductsPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
+  const selectedParentCategory = params.categoriaPadre;
+  const selectedSubcategory = params.subcategoria ?? params.categoria;
   const filters = {
     query: params.q,
-    categoryId: params.categoria,
-    status: toProductStatus(params.estadoProducto),
+    parentCategoryId: selectedParentCategory,
+    categoryId: selectedSubcategory,
+    availabilityStatus: toProductStatus(
+      params.estadoDisponibilidad ?? params.estadoProducto
+    ),
+    publicationStatus: toPublicationStatus(params.estadoPublicacion),
   };
   const pageData = await getAdminProductsPageData(filters);
   const allProductsData =
@@ -160,6 +206,18 @@ export default async function AdminProductsPage({
     : null;
   const shouldShowForm = Boolean(params.nuevo || editingProduct);
   const message = params.estado ? pageMessages[params.estado] : null;
+  const parentCategories = pageData.categories.filter(
+    (category) => !category.parentId
+  );
+  const subcategories = pageData.categories.filter((category) => {
+    if (!category.parentId) {
+      return false;
+    }
+
+    return selectedParentCategory
+      ? category.parentId === selectedParentCategory
+      : true;
+  });
 
   return (
     <div className="grid gap-6">
@@ -239,38 +297,56 @@ export default async function AdminProductsPage({
       ) : null}
 
       <section className="panel-card rounded-[2rem] p-5 sm:p-6">
-        <form className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px_220px_auto_auto] lg:items-end">
+        <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_190px_190px_auto_auto] xl:items-end">
           <label className="grid gap-2 text-sm font-semibold">
-            Buscar por nombre o SKU
+            Buscar por nombre, SKU, marca o EAN
             <input
               name="q"
               defaultValue={params.q ?? ""}
               className="form-input"
-              placeholder="Ej: capuccino, 302, Mokador"
+              placeholder="Ej: Caprimo, REG-10100100, 304393"
             />
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
-            Categoria
+            Categoria padre
             <select
-              name="categoria"
-              defaultValue={params.categoria ?? ""}
+              name="categoriaPadre"
+              defaultValue={selectedParentCategory ?? ""}
               className="form-input"
             >
               <option value="">Todas</option>
-              {pageData.categories.map((category) => (
+              {parentCategories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
+                  {!category.isActive ? " (inactiva)" : ""}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
-            Estado
+            Subcategoria
             <select
-              name="estadoProducto"
-              defaultValue={params.estadoProducto ?? ""}
+              name="subcategoria"
+              defaultValue={selectedSubcategory ?? ""}
+              className="form-input"
+            >
+              <option value="">Todas</option>
+              {subcategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {getCategoryOptionLabel(category, pageData.categories)}
+                  {!category.isActive ? " (inactiva)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold">
+            Disponibilidad
+            <select
+              name="estadoDisponibilidad"
+              defaultValue={params.estadoDisponibilidad ?? params.estadoProducto ?? ""}
               className="form-input"
             >
               <option value="">Todos</option>
@@ -279,6 +355,20 @@ export default async function AdminProductsPage({
               <option value="sold_out">Agotado</option>
               <option value="draft">Borrador</option>
               <option value="hidden">Oculto</option>
+            </select>
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold">
+            Publicacion
+            <select
+              name="estadoPublicacion"
+              defaultValue={params.estadoPublicacion ?? ""}
+              className="form-input"
+            >
+              <option value="">Todas</option>
+              <option value="draft">Borrador</option>
+              <option value="published">Publicado</option>
+              <option value="archived">Archivado</option>
             </select>
           </label>
 

@@ -2,6 +2,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ADMIN_PRODUCT_STATUSES,
   AdminProductStatus,
+  AdminPublicationStatus,
+  CategoryFormFieldErrors,
+  CategoryFormValues,
   ProductFormFieldErrors,
   ProductFormValues,
   isPlaceholderSku,
@@ -21,7 +24,10 @@ const READ_ROLES = [...MUTATION_ROLES, "sales_manager"];
 export class CatalogAdminError extends Error {
   constructor(
     message: string,
-    public readonly field?: keyof ProductFormFieldErrors
+    public readonly field?:
+      | keyof ProductFormFieldErrors
+      | keyof CategoryFormFieldErrors
+      | string
   ) {
     super(message);
     this.name = "CatalogAdminError";
@@ -30,6 +36,8 @@ export class CatalogAdminError extends Error {
 
 export interface AdminCatalogCategory {
   id: string;
+  parentId: string | null;
+  parentName: string | null;
   name: string;
   slug: string;
   description: string;
@@ -37,6 +45,8 @@ export interface AdminCatalogCategory {
   sortOrder: number;
   isActive: boolean;
   isVisible: boolean;
+  productCount: number;
+  descendantProductCount: number;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -46,9 +56,12 @@ export interface AdminCatalogProduct {
   categoryId: string;
   categorySlug: string;
   categoryName: string;
+  categoryParentId: string | null;
+  categoryParentName: string | null;
   name: string;
   slug: string;
   sku: string | null;
+  ean: string | null;
   shortDescription: string;
   longDescription: string;
   netPriceClp: number;
@@ -78,10 +91,22 @@ export interface AdminCatalogPageData {
   warning?: string;
 }
 
+export interface AdminCategoriesPageData {
+  source: "supabase" | "seed";
+  categories: AdminCatalogCategory[];
+  totalCategories: number;
+  totalProducts: number;
+  canMutate: boolean;
+  warning?: string;
+}
+
 export interface AdminProductFilters {
   query?: string;
   categoryId?: string;
+  parentCategoryId?: string;
   status?: AdminProductStatus;
+  availabilityStatus?: AdminProductStatus;
+  publicationStatus?: AdminPublicationStatus;
 }
 
 function hasAnyRole(roles: string[], allowedRoles: string[]) {
@@ -92,7 +117,7 @@ async function getReadContext() {
   const roles = await getAuthenticatedUserRoles();
 
   if (!hasAnyRole(roles, READ_ROLES)) {
-    throw new CatalogAdminError("No tienes permisos para ver productos.");
+    throw new CatalogAdminError("No tienes permisos para ver catalogo.");
   }
 
   return {
@@ -106,7 +131,7 @@ async function getMutationClient() {
 
   if (!hasAnyRole(roles, MUTATION_ROLES)) {
     throw new CatalogAdminError(
-      "Solo super administradores o editores de catalogo pueden modificar productos."
+      "Solo super administradores o editores de catalogo pueden modificar el catalogo."
     );
   }
 
@@ -134,9 +159,22 @@ function toAdminStatus(value: string | null | undefined): AdminProductStatus {
     : "available";
 }
 
+function toStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (entry): entry is string =>
+      typeof entry === "string" && entry.trim().length > 0
+  );
+}
+
 function mapCategory(row: Record<string, unknown>): AdminCatalogCategory {
   return {
     id: String(row.id),
+    parentId: typeof row.parent_id === "string" ? row.parent_id : null,
+    parentName: null,
     name: String(row.name ?? ""),
     slug: String(row.slug ?? ""),
     description: String(row.description ?? ""),
@@ -144,6 +182,8 @@ function mapCategory(row: Record<string, unknown>): AdminCatalogCategory {
     sortOrder: Number(row.sort_order ?? 0),
     isActive: Boolean(row.is_active ?? row.is_visible ?? true),
     isVisible: Boolean(row.is_visible ?? row.is_active ?? true),
+    productCount: 0,
+    descendantProductCount: 0,
     createdAt: typeof row.created_at === "string" ? row.created_at : null,
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
   };
@@ -152,6 +192,8 @@ function mapCategory(row: Record<string, unknown>): AdminCatalogCategory {
 function mapSeedCategory(category: CatalogCategory): AdminCatalogCategory {
   return {
     id: category.id,
+    parentId: category.parentId ?? null,
+    parentName: null,
     name: category.name,
     slug: category.slug,
     description: category.description,
@@ -159,6 +201,8 @@ function mapSeedCategory(category: CatalogCategory): AdminCatalogCategory {
     sortOrder: category.sortOrder,
     isActive: category.isActive ?? category.isVisible,
     isVisible: category.isVisible,
+    productCount: 0,
+    descendantProductCount: 0,
     createdAt: null,
     updatedAt: null,
   };
@@ -169,6 +213,9 @@ function mapProduct(
   categories: AdminCatalogCategory[]
 ): AdminCatalogProduct {
   const category = categories.find((entry) => entry.id === row.category_id);
+  const parentCategory = category?.parentId
+    ? categories.find((entry) => entry.id === category.parentId)
+    : null;
   const grossPrice = Number(
     row.gross_price_clp ?? row.price_clp_tax_inc ?? 0
   );
@@ -177,41 +224,32 @@ function mapProduct(
   );
   const primaryImagePath =
     typeof row.primary_image_path === "string" ? row.primary_image_path : "";
-  const galleryImages = Array.isArray(row.gallery_images)
-    ? row.gallery_images.filter(
-        (image): image is string =>
-          typeof image === "string" && image.trim().length > 0
-      )
-    : [];
-  const highlights = Array.isArray(row.highlights)
-    ? row.highlights.filter(
-        (highlight): highlight is string =>
-          typeof highlight === "string" && highlight.trim().length > 0
-      )
-    : [];
 
   return {
     id: String(row.id),
     categoryId: String(row.category_id ?? ""),
     categorySlug: category?.slug ?? "",
     categoryName: category?.name ?? "Sin categoria",
+    categoryParentId: category?.parentId ?? null,
+    categoryParentName: parentCategory?.name ?? null,
     name: String(row.name ?? ""),
     slug: String(row.slug ?? ""),
     sku: typeof row.sku === "string" && row.sku.trim() ? row.sku : null,
+    ean: typeof row.ean === "string" && row.ean.trim() ? row.ean : null,
     shortDescription: String(row.short_description ?? ""),
     longDescription: String(row.long_description ?? ""),
     netPriceClp: netPrice,
     grossPriceClp: grossPrice,
     priceClpTaxInc: Number(row.price_clp_tax_inc ?? grossPrice),
     primaryImagePath,
-    galleryImages,
+    galleryImages: toStringArray(row.gallery_images),
     availabilityStatus: toAdminStatus(row.availability_status as string),
     publicationStatus: (row.publication_status ?? "draft") as PublicationStatus,
     isFeatured: Boolean(row.is_featured ?? false),
     sortOrder: Number(row.sort_order ?? 0),
     seoTitle: String(row.seo_title ?? row.name ?? ""),
     seoDescription: String(row.seo_description ?? row.short_description ?? ""),
-    highlights,
+    highlights: toStringArray(row.highlights),
     brand: typeof row.brand === "string" && row.brand.trim() ? row.brand : null,
     stockQuantity:
       row.stock_quantity === null || row.stock_quantity === undefined
@@ -227,6 +265,9 @@ function mapSeedProduct(
   categories: AdminCatalogCategory[]
 ): AdminCatalogProduct {
   const category = categories.find((entry) => entry.slug === product.categorySlug);
+  const parentCategory = category?.parentId
+    ? categories.find((entry) => entry.id === category.parentId)
+    : null;
   const grossPrice = product.grossPriceClp ?? product.priceClpTaxInc;
   const netPrice = product.netPriceClp ?? Math.round(grossPrice / 1.19);
 
@@ -235,9 +276,12 @@ function mapSeedProduct(
     categoryId: category?.id ?? product.categoryId ?? "",
     categorySlug: product.categorySlug,
     categoryName: category?.name ?? product.categorySlug,
+    categoryParentId: category?.parentId ?? null,
+    categoryParentName: parentCategory?.name ?? null,
     name: product.name,
     slug: product.slug,
     sku: product.sku,
+    ean: product.ean ?? null,
     shortDescription: product.shortDescription,
     longDescription: product.longDescription,
     netPriceClp: netPrice,
@@ -259,6 +303,53 @@ function mapSeedProduct(
   };
 }
 
+function attachCategoryMetadata(
+  categories: AdminCatalogCategory[],
+  products: AdminCatalogProduct[]
+) {
+  const directCounts = new Map<string, number>();
+  const descendantCounts = new Map<string, number>();
+
+  for (const product of products) {
+    directCounts.set(
+      product.categoryId,
+      (directCounts.get(product.categoryId) ?? 0) + 1
+    );
+
+    if (product.categoryParentId) {
+      descendantCounts.set(
+        product.categoryParentId,
+        (descendantCounts.get(product.categoryParentId) ?? 0) + 1
+      );
+    }
+  }
+
+  return categories.map((category) => {
+    const parent = category.parentId
+      ? categories.find((entry) => entry.id === category.parentId)
+      : null;
+
+    return {
+      ...category,
+      parentName: parent?.name ?? null,
+      productCount: directCounts.get(category.id) ?? 0,
+      descendantProductCount: descendantCounts.get(category.id) ?? 0,
+    };
+  });
+}
+
+export function getCategoryDisplayName(
+  category: AdminCatalogCategory,
+  categories: AdminCatalogCategory[]
+) {
+  if (!category.parentId) {
+    return category.name;
+  }
+
+  const parent = categories.find((entry) => entry.id === category.parentId);
+  return parent ? `${parent.name} / ${category.name}` : category.name;
+}
+
 function applyFilters(
   products: AdminCatalogProduct[],
   filters: AdminProductFilters
@@ -272,11 +363,21 @@ function applyFilters(
         [
           product.name,
           product.sku ?? "",
+          product.ean ?? "",
           product.brand ?? "",
           product.categoryName,
+          product.categoryParentName ?? "",
           product.shortDescription,
         ].join(" ")
       ).includes(query)
+    );
+  }
+
+  if (filters.parentCategoryId?.trim()) {
+    filtered = filtered.filter(
+      (product) =>
+        product.categoryId === filters.parentCategoryId ||
+        product.categoryParentId === filters.parentCategoryId
     );
   }
 
@@ -286,9 +387,17 @@ function applyFilters(
     );
   }
 
-  if (filters.status) {
+  const availabilityStatus = filters.availabilityStatus ?? filters.status;
+
+  if (availabilityStatus) {
     filtered = filtered.filter(
-      (product) => product.availabilityStatus === filters.status
+      (product) => product.availabilityStatus === availabilityStatus
+    );
+  }
+
+  if (filters.publicationStatus) {
+    filtered = filtered.filter(
+      (product) => product.publicationStatus === filters.publicationStatus
     );
   }
 
@@ -311,10 +420,11 @@ async function getFallbackCatalogPageData(
   const products = snapshot.products.map((product) =>
     mapSeedProduct(product, categories)
   );
+  const categoriesWithMetadata = attachCategoryMetadata(categories, products);
 
   return {
     source: "seed",
-    categories,
+    categories: categoriesWithMetadata,
     products: applyFilters(products, filters),
     totalProducts: products.length,
     canMutate,
@@ -363,11 +473,78 @@ export async function getAdminProductsPageData(
   const products = (productsResponse.data ?? []).map((product) =>
     mapProduct(product, categories)
   );
+  const categoriesWithMetadata = attachCategoryMetadata(categories, products);
 
   return {
     source: "supabase",
-    categories,
+    categories: categoriesWithMetadata,
     products: applyFilters(products, filters),
+    totalProducts: products.length,
+    canMutate,
+  };
+}
+
+export async function getAdminCategoriesPageData(): Promise<AdminCategoriesPageData> {
+  const { canMutate } = await getReadContext();
+  const client = createSupabaseAdminClient();
+
+  if (!client) {
+    const snapshot = await getAdminCatalogSnapshot();
+    const categories = snapshot.categories.map(mapSeedCategory);
+    const products = snapshot.products.map((product) =>
+      mapSeedProduct(product, categories)
+    );
+
+    return {
+      source: "seed",
+      categories: attachCategoryMetadata(categories, products),
+      totalCategories: categories.length,
+      totalProducts: products.length,
+      canMutate,
+      warning:
+        "Supabase admin no esta configurado; se muestra el seed local en modo lectura.",
+    };
+  }
+
+  const [categoriesResponse, productsResponse] = await Promise.all([
+    client
+      .from("categories")
+      .select("*")
+      .order("sort_order", { ascending: true }),
+    client.from("products").select("*").order("sort_order", { ascending: true }),
+  ]);
+
+  if (categoriesResponse.error || productsResponse.error) {
+    const snapshot = await getAdminCatalogSnapshot();
+    const categories = snapshot.categories.map(mapSeedCategory);
+    const products = snapshot.products.map((product) =>
+      mapSeedProduct(product, categories)
+    );
+
+    return {
+      source: "seed",
+      categories: attachCategoryMetadata(categories, products),
+      totalCategories: categories.length,
+      totalProducts: products.length,
+      canMutate,
+      warning:
+        categoriesResponse.error?.message ??
+        productsResponse.error?.message ??
+        "No fue posible leer Supabase; se muestra el seed local.",
+    };
+  }
+
+  const categories = (categoriesResponse.data ?? []).map((category) =>
+    mapCategory(category)
+  );
+  const products = (productsResponse.data ?? []).map((product) =>
+    mapProduct(product, categories)
+  );
+
+  return {
+    source: "supabase",
+    categories: attachCategoryMetadata(categories, products),
+    totalCategories: categories.length,
     totalProducts: products.length,
     canMutate,
   };
@@ -414,6 +591,37 @@ async function ensureUniqueProductValue({
   }
 }
 
+async function ensureUniqueCategorySlug({
+  value,
+  categoryId,
+}: {
+  value: string;
+  categoryId?: string;
+}) {
+  const client = await getMutationClient();
+  let query = client.from("categories").select("id").eq("slug", value).limit(1);
+
+  if (categoryId) {
+    query = query.neq("id", categoryId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new CatalogAdminError(
+      "No pudimos validar el slug. Intenta nuevamente.",
+      "slug"
+    );
+  }
+
+  if ((data ?? []).length > 0) {
+    throw new CatalogAdminError(
+      "Ya existe una categoria con este slug.",
+      "slug"
+    );
+  }
+}
+
 async function syncProductImages(
   productId: string,
   productName: string,
@@ -440,6 +648,118 @@ async function syncProductImages(
       is_primary: index === 0,
     }))
   );
+}
+
+export async function saveAdminCategory(input: CategoryFormValues) {
+  const client = await getMutationClient();
+  const categoryId = input.categoryId || `cat-${input.slug}`;
+
+  await ensureUniqueCategorySlug({
+    value: input.slug,
+    categoryId: input.categoryId,
+  });
+
+  if (!input.categoryId) {
+    const { data: existingId, error: existingIdError } = await client
+      .from("categories")
+      .select("id")
+      .eq("id", categoryId)
+      .limit(1);
+
+    if (existingIdError) {
+      throw new CatalogAdminError(
+        "No pudimos validar la categoria. Intenta nuevamente."
+      );
+    }
+
+    if ((existingId ?? []).length > 0) {
+      throw new CatalogAdminError(
+        "Ya existe una categoria con este identificador.",
+        "slug"
+      );
+    }
+  }
+
+  if (input.parentId) {
+    if (input.parentId === categoryId) {
+      throw new CatalogAdminError(
+        "Una categoria no puede ser padre de si misma.",
+        "parentId"
+      );
+    }
+
+    const { data: parent, error: parentError } = await client
+      .from("categories")
+      .select("id")
+      .eq("id", input.parentId)
+      .maybeSingle();
+
+    if (parentError || !parent) {
+      throw new CatalogAdminError(
+        "La categoria padre seleccionada no existe.",
+        "parentId"
+      );
+    }
+  }
+
+  const payload = {
+    name: input.name,
+    slug: input.slug,
+    description: input.description,
+    parent_id: input.parentId,
+    sort_order: input.sortOrder,
+    image_url: input.imageUrl,
+    is_active: input.isActive,
+    is_visible: input.isActive,
+    seo_title: `${input.name} | SMK Vending`,
+    seo_description: input.description || input.name,
+  };
+  const response = input.categoryId
+    ? await client.from("categories").update(payload).eq("id", input.categoryId)
+    : await client.from("categories").insert({ id: categoryId, ...payload });
+
+  if (response.error) {
+    throw new CatalogAdminError(
+      response.error.message || "No fue posible guardar la categoria."
+    );
+  }
+
+  return {
+    id: categoryId,
+    slug: input.slug,
+  };
+}
+
+export async function setAdminCategoryActive(categoryId: string, isActive: boolean) {
+  const client = await getMutationClient();
+  const { data: category, error: categoryError } = await client
+    .from("categories")
+    .select("id, slug")
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (categoryError || !category) {
+    throw new CatalogAdminError("La categoria no existe o ya no esta disponible.");
+  }
+
+  const { error } = await client
+    .from("categories")
+    .update({
+      is_active: isActive,
+      is_visible: isActive,
+    })
+    .eq("id", categoryId);
+
+  if (error) {
+    throw new CatalogAdminError(
+      error.message || "No fue posible actualizar la categoria."
+    );
+  }
+
+  return {
+    id: String(category.id),
+    slug: String(category.slug ?? ""),
+  };
 }
 
 export async function saveAdminProduct(input: ProductFormValues) {
@@ -479,6 +799,7 @@ export async function saveAdminProduct(input: ProductFormValues) {
     name: input.name,
     slug: input.slug,
     sku: input.sku,
+    ean: input.ean,
     short_description: input.shortDescription,
     long_description: input.longDescription,
     price_clp_tax_inc: input.grossPriceClp,

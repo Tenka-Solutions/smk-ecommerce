@@ -7,6 +7,7 @@ import { saveProductAction } from "@/app/(admin)/admin/productos/actions";
 import { ProductImageUploader } from "@/components/admin/ProductImageUploader";
 import {
   ADMIN_PRODUCT_STATUSES,
+  ADMIN_PUBLICATION_STATUSES,
   slugifyProductName,
 } from "@/modules/catalog/admin-schema";
 import type { ProductFormState } from "@/modules/catalog/admin-schema";
@@ -19,12 +20,24 @@ const initialState: ProductFormState = {
   status: "idle",
 };
 
-const statusLabels: Record<(typeof ADMIN_PRODUCT_STATUSES)[number], string> = {
-  available: "Disponible y publicado",
+const availabilityStatusLabels: Record<
+  (typeof ADMIN_PRODUCT_STATUSES)[number],
+  string
+> = {
+  available: "Disponible",
   check_availability: "Consultar disponibilidad",
   sold_out: "Agotado",
   draft: "Borrador",
   hidden: "Oculto",
+};
+
+const publicationStatusLabels: Record<
+  (typeof ADMIN_PUBLICATION_STATUSES)[number],
+  string
+> = {
+  draft: "Borrador",
+  published: "Publicado",
+  archived: "Archivado",
 };
 
 function FormFieldError({ message }: { message?: string }) {
@@ -53,6 +66,18 @@ function valueOrFallback<T>(value: T | undefined, fallback: T) {
   return value ?? fallback;
 }
 
+function getCategoryLabel(
+  category: AdminCatalogCategory,
+  categories: AdminCatalogCategory[]
+) {
+  if (!category.parentId) {
+    return category.name;
+  }
+
+  const parent = categories.find((entry) => entry.id === category.parentId);
+  return parent ? `${parent.name} / ${category.name}` : category.name;
+}
+
 export function ProductForm({
   categories,
   product,
@@ -78,6 +103,15 @@ export function ProductForm({
   const defaultStatus = valueOrFallback(
     stateValues?.availabilityStatus,
     product?.availabilityStatus ?? "draft"
+  );
+  const defaultPublicationStatus = valueOrFallback(
+    stateValues?.publicationStatus,
+    product?.publicationStatus ?? "draft"
+  );
+  const parentCategories = categories.filter((category) => !category.parentId);
+  const childCategories = categories.filter((category) => category.parentId);
+  const orphanChildren = childCategories.filter(
+    (category) => !categories.some((parent) => parent.id === category.parentId)
   );
 
   function handleNameChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -162,7 +196,7 @@ export function ProductForm({
             </label>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             <label className="grid gap-2 text-sm font-semibold">
               SKU
               <input
@@ -175,7 +209,31 @@ export function ProductForm({
               <FormFieldError message={state.fieldErrors?.sku} />
             </label>
 
-            <label className="grid gap-2 text-sm font-semibold md:col-span-2">
+            <label className="grid gap-2 text-sm font-semibold">
+              EAN
+              <input
+                name="ean"
+                defaultValue={valueOrFallback(stateValues?.ean, product?.ean ?? "") ?? ""}
+                className="form-input"
+                placeholder="Opcional"
+                disabled={!canMutate}
+              />
+              <FormFieldError message={state.fieldErrors?.ean} />
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold">
+              Marca
+              <input
+                name="brand"
+                defaultValue={valueOrFallback(stateValues?.brand, product?.brand ?? "") ?? ""}
+                className="form-input"
+                placeholder="Ej: Caprimo"
+                disabled={!canMutate}
+              />
+              <FormFieldError message={state.fieldErrors?.brand} />
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold">
               Categoria *
               <select
                 name="categoryId"
@@ -184,9 +242,28 @@ export function ProductForm({
                 disabled={!canMutate}
               >
                 <option value="">Selecciona una categoria</option>
-                {categories.map((category) => (
+                {parentCategories.map((parent) => (
+                  <optgroup
+                    key={parent.id}
+                    label={`${parent.name}${!parent.isActive ? " (inactiva)" : ""}`}
+                  >
+                    <option value={parent.id}>
+                      {parent.name}
+                      {!parent.isActive ? " (inactiva)" : ""}
+                    </option>
+                    {categories
+                      .filter((category) => category.parentId === parent.id)
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {getCategoryLabel(category, categories)}
+                          {!category.isActive ? " (inactiva)" : ""}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+                {orphanChildren.map((category) => (
                   <option key={category.id} value={category.id}>
-                    {category.name}
+                    {getCategoryLabel(category, categories)}
                     {!category.isActive ? " (inactiva)" : ""}
                   </option>
                 ))}
@@ -261,9 +338,9 @@ export function ProductForm({
             </label>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             <label className="grid gap-2 text-sm font-semibold">
-              Estado
+              Disponibilidad
               <select
                 name="availabilityStatus"
                 defaultValue={defaultStatus}
@@ -272,11 +349,28 @@ export function ProductForm({
               >
                 {ADMIN_PRODUCT_STATUSES.map((status) => (
                   <option key={status} value={status}>
-                    {statusLabels[status]}
+                    {availabilityStatusLabels[status]}
                   </option>
                 ))}
               </select>
               <FormFieldError message={state.fieldErrors?.availabilityStatus} />
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold">
+              Publicacion
+              <select
+                name="publicationStatus"
+                defaultValue={defaultPublicationStatus}
+                className="form-input"
+                disabled={!canMutate}
+              >
+                {ADMIN_PUBLICATION_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {publicationStatusLabels[status]}
+                  </option>
+                ))}
+              </select>
+              <FormFieldError message={state.fieldErrors?.publicationStatus} />
             </label>
 
             <label className="grid gap-2 text-sm font-semibold">
@@ -312,18 +406,6 @@ export function ProductForm({
               <FormFieldError message={state.fieldErrors?.sortOrder} />
             </label>
           </div>
-
-          <label className="grid gap-2 text-sm font-semibold">
-            Marca
-            <input
-              name="brand"
-              defaultValue={valueOrFallback(stateValues?.brand, product?.brand ?? "") ?? ""}
-              className="form-input"
-              placeholder="Ej: Mokador"
-              disabled={!canMutate}
-            />
-            <FormFieldError message={state.fieldErrors?.brand} />
-          </label>
 
           <label className="grid gap-2 text-sm font-semibold">
             Highlights
