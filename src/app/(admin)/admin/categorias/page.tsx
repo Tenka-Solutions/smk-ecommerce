@@ -85,7 +85,6 @@ function CategoryRow({
   hasChildren: boolean;
   level?: number;
 }) {
-  const productTotal = category.productCount + category.descendantProductCount;
   const isParent = !category.parentId;
 
   return (
