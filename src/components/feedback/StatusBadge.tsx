@@ -26,10 +26,20 @@ const statusMap = {
     className:
       "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
   },
+  processing: {
+    label: "En proceso",
+    className:
+      "border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_12%,var(--color-card)_88%)] text-[var(--color-warning)]",
+  },
   shipped: {
     label: "Enviado",
     className:
       "border-[color-mix(in_srgb,var(--color-secondary)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-secondary)_12%,var(--color-card)_88%)] text-[var(--color-foreground)]",
+  },
+  completed: {
+    label: "Completado",
+    className:
+      "border-[color-mix(in_srgb,var(--color-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-success)_12%,var(--color-card)_88%)] text-[var(--color-success)]",
   },
   delivered: {
     label: "Entregado",
