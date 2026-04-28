@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { isSupabaseConfigured } from "@/lib/env";
-import {
-  adminNavigation,
-  siteConfig,
-} from "@/modules/shared/site";
+import { adminNavigation, siteConfig } from "@/modules/shared/site";
 import {
   getAuthenticatedUser,
   getAuthenticatedUserRoles,
@@ -61,7 +59,7 @@ export default async function AdminLayout({
               SMK <span className="text-[var(--color-accent)]">Vending</span>
             </span>
           </Link>
-          <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">
+          <p className="mt-4 text-sm leading-7 text-[var(--color-admin-muted)]">
             Panel privado para administrar catalogo, pedidos y seguimiento
             comercial.
           </p>
@@ -71,7 +69,7 @@ export default async function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-[1rem] px-4 py-3 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-ink)]"
+                className="rounded-[1rem] px-4 py-3 text-sm font-medium text-[var(--color-admin-link)] hover:bg-[var(--color-surface-strong)] hover:text-[var(--color-admin-link-hover)]"
               >
                 {item.label}
               </Link>
@@ -79,18 +77,19 @@ export default async function AdminLayout({
           </nav>
 
           <div className="mt-8 rounded-[1.5rem] bg-[var(--color-surface-strong)] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-admin-muted)]">
               Sesion
             </p>
             <p className="mt-3 text-sm font-semibold text-[var(--color-ink)]">
               {user.email}
             </p>
-            <p className="mt-2 text-sm text-[var(--color-muted)]">
-              {roles.join(" · ") || "Administrador"}
+            <p className="mt-2 text-sm text-[var(--color-admin-muted)]">
+              {roles.join(" / ") || "Administrador"}
             </p>
+            <SignOutButton className="button-secondary mt-4 w-full justify-center px-4 py-3 text-sm" />
           </div>
 
-          <div className="mt-8 text-sm text-[var(--color-muted)]">
+          <div className="mt-8 text-sm text-[var(--color-admin-muted)]">
             <p>{siteConfig.contact.salesEmail}</p>
             <p className="mt-1">{siteConfig.contact.phone}</p>
           </div>

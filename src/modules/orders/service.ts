@@ -8,14 +8,16 @@ import {
   CheckoutShippingInput,
 } from "@/modules/checkout/schema";
 
-type PaymentStatus = "pending" | "paid" | "rejected" | "cancelled";
-type OrderStatus =
+export type PaymentStatus = "pending" | "paid" | "rejected" | "cancelled";
+export type OrderStatus =
   | "pending"
   | "paid"
+  | "processing"
   | "rejected"
   | "cancelled"
   | "preparing"
   | "shipped"
+  | "completed"
   | "delivered";
 
 interface OrderRow {
@@ -23,13 +25,24 @@ interface OrderRow {
   order_number: string;
   order_status: OrderStatus;
   payment_status: PaymentStatus;
+  subtotal_tax_inc: number | null;
   total_tax_inc: number | null;
   created_at: string | null;
+  updated_at: string | null;
   customer_name: string;
   customer_email: string;
   phone: string | null;
+  rut: string | null;
+  company_name: string | null;
+  business_name: string | null;
+  business_activity: string | null;
   tax_amount: number | null;
+  shipping_amount: number | null;
   shipping_label: string | null;
+  payment_provider: string | null;
+  archived_at?: string | null;
+  archived_by?: string | null;
+  internal_note?: string | null;
 }
 
 interface OrderAddressRow {
@@ -52,7 +65,10 @@ interface OrderItemRow {
 }
 
 interface PaymentAttemptRow {
+  provider: string | null;
   reference: string | null;
+  status: PaymentStatus | null;
+  provider_transaction_id: string | null;
 }
 
 export interface CreateOrderDraftInput {
@@ -89,15 +105,29 @@ export interface OrderListItem {
   paymentStatus: PaymentStatus;
   totalTaxInc: number;
   createdAt: string | null;
-}
-
-export interface OrderDetail extends OrderListItem {
+  updatedAt: string | null;
   customerName: string;
   customerEmail: string;
   phone: string | null;
+  companyName: string | null;
+  rut: string | null;
+  paymentProvider: string | null;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  internalNote: string | null;
+}
+
+export interface OrderDetail extends OrderListItem {
+  businessName: string | null;
+  businessActivity: string | null;
+  subtotalTaxInc: number;
   taxAmount: number;
+  shippingAmount: number;
   shippingLabel: string;
+  paymentAttemptProvider: string | null;
   reference: string | null;
+  paymentAttemptStatus: PaymentStatus | null;
+  paymentTransactionId: string | null;
   items: Array<{
     productId: string | null;
     sku: string | null;
@@ -131,6 +161,16 @@ function toOrderListItem(order: OrderRow): OrderListItem {
     paymentStatus: order.payment_status,
     totalTaxInc: order.total_tax_inc ?? 0,
     createdAt: order.created_at ?? null,
+    updatedAt: order.updated_at ?? null,
+    customerName: order.customer_name,
+    customerEmail: order.customer_email,
+    phone: order.phone ?? null,
+    companyName: order.company_name ?? null,
+    rut: order.rut ?? null,
+    paymentProvider: order.payment_provider ?? null,
+    archivedAt: order.archived_at ?? null,
+    archivedBy: order.archived_by ?? null,
+    internalNote: order.internal_note ?? null,
   };
 }
 
@@ -142,12 +182,16 @@ function mapOrderDetail(
 ): OrderDetail {
   return {
     ...toOrderListItem(order),
-    customerName: order.customer_name,
-    customerEmail: order.customer_email,
-    phone: order.phone ?? null,
+    businessName: order.business_name ?? null,
+    businessActivity: order.business_activity ?? null,
+    subtotalTaxInc: order.subtotal_tax_inc ?? 0,
     taxAmount: order.tax_amount ?? 0,
+    shippingAmount: order.shipping_amount ?? 0,
     shippingLabel: order.shipping_label ?? "Por confirmar",
+    paymentAttemptProvider: paymentAttempt?.provider ?? null,
     reference: paymentAttempt?.reference ?? null,
+    paymentAttemptStatus: paymentAttempt?.status ?? null,
+    paymentTransactionId: paymentAttempt?.provider_transaction_id ?? null,
     items: itemRows.map((item) => ({
       productId: item.product_id ?? null,
       sku: item.sku_snapshot ?? null,
@@ -179,7 +223,7 @@ export async function createOrderDraft(input: CreateOrderDraftInput) {
       throw new Error("Uno o mas productos del carrito ya no estan disponibles.");
     }
 
-    if (product.availabilityStatus === "sold_out") {
+    if (["sold_out", "draft", "hidden"].includes(product.availabilityStatus)) {
       throw new Error(
         `El producto ${product.name} no esta disponible para compra directa.`
       );

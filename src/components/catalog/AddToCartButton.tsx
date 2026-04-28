@@ -8,6 +8,9 @@ import { CatalogProduct } from "@/modules/catalog/types";
 export function AddToCartButton({ product }: { product: CatalogProduct }) {
   const [isAdding, setIsAdding] = useState(false);
   const lastInteractionRef = useRef(0);
+  const isUnavailable = ["sold_out", "draft", "hidden"].includes(
+    product.availabilityStatus
+  );
 
   function handleAdd(
     event?:
@@ -17,7 +20,7 @@ export function AddToCartButton({ product }: { product: CatalogProduct }) {
     event?.preventDefault();
     event?.stopPropagation();
 
-    if (product.availabilityStatus === "sold_out" || isAdding) {
+    if (isUnavailable || isAdding) {
       return;
     }
 
@@ -45,12 +48,12 @@ export function AddToCartButton({ product }: { product: CatalogProduct }) {
   return (
     <button
       type="button"
-      disabled={product.availabilityStatus === "sold_out" || isAdding}
+      disabled={isUnavailable || isAdding}
       onClick={handleAdd}
       onTouchEnd={handleAdd}
       className="button-primary relative z-10 w-full select-none px-5 py-3 text-sm [touch-action:manipulation] disabled:cursor-not-allowed disabled:opacity-50"
     >
-      {product.availabilityStatus === "sold_out"
+      {isUnavailable
         ? "No disponible"
         : isAdding
           ? "Agregando..."

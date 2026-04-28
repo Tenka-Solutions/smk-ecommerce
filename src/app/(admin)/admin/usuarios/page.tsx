@@ -9,7 +9,7 @@ export default async function AdminUsersPage() {
       <section className="panel-card rounded-[2rem] p-6 sm:p-8">
         <p className="section-kicker">Seguridad</p>
         <h1 className="mt-3 text-4xl font-semibold">Usuarios admin</h1>
-        <p className="mt-4 text-sm leading-8 text-[var(--color-muted)]">
+        <p className="mt-4 text-sm leading-8 text-[var(--color-muted-foreground)]">
           Esta vista deja visible la estructura de roles y los correos
           autorizados por entorno para operar el panel.
         </p>
@@ -29,7 +29,7 @@ export default async function AdminUsersPage() {
                 </span>
               ))
             ) : (
-              <p className="text-sm text-[var(--color-muted)]">
+              <p className="text-sm text-[var(--color-muted-foreground)]">
                 No hay roles cargados desde Supabase para esta cuenta.
               </p>
             )}
@@ -49,7 +49,7 @@ export default async function AdminUsersPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[var(--color-muted)]">
+              <p className="text-sm text-[var(--color-muted-foreground)]">
                 ADMIN_ALLOWED_EMAILS no esta definido en el entorno actual.
               </p>
             )}

@@ -2,21 +2,45 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { isAdminUser } from "@/modules/auth/server";
+import { getAuthenticatedUserRoles } from "@/modules/auth/server";
 
+const PRODUCT_IMAGE_BUCKET = "product-images";
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/svg+xml",
+] as const;
 const uploadSchema = z.object({
-  fileName: z.string().min(1),
-  folder: z.string().trim().default("products"),
+  fileName: z.string().trim().min(1).max(180),
+  contentType: z.enum(ALLOWED_IMAGE_TYPES, {
+    error: "Tipo de archivo no permitido.",
+  }),
+  size: z
+    .number()
+    .int()
+    .min(1, "El archivo esta vacio.")
+    .max(MAX_FILE_SIZE_BYTES, "La imagen no puede superar 5 MB."),
+  folder: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9/_-]+$/i, "Carpeta invalida.")
+    .default("products"),
 });
 
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9.\-_]/g, "-").toLowerCase();
 }
 
-export async function POST(request: Request) {
-  const admin = await isAdminUser();
+function canUploadProductImages(roles: string[]) {
+  return roles.some((role) => ["super_admin", "catalog_editor"].includes(role));
+}
 
-  if (!admin) {
+export async function POST(request: Request) {
+  const roles = await getAuthenticatedUserRoles();
+
+  if (!canUploadProductImages(roles)) {
     return NextResponse.json(
       { error: "No autorizado para firmar uploads." },
       { status: 403 }
@@ -47,7 +71,7 @@ export async function POST(request: Request) {
   )}`;
 
   const { data, error } = await adminClient.storage
-    .from("catalog")
+    .from(PRODUCT_IMAGE_BUCKET)
     .createSignedUploadUrl(filePath, {
       upsert: true,
     });
@@ -59,9 +83,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const { data: publicUrlData } = adminClient.storage
+    .from(PRODUCT_IMAGE_BUCKET)
+    .getPublicUrl(filePath);
+
   return NextResponse.json({
+    bucket: PRODUCT_IMAGE_BUCKET,
     path: filePath,
     token: data.token,
     signedUrl: data.signedUrl,
+    publicUrl: publicUrlData.publicUrl,
   });
 }

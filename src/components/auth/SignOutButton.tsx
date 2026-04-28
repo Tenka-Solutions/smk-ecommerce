@@ -1,36 +1,30 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useFormStatus } from "react-dom";
+import { signOutAction } from "@/modules/auth/actions";
 
-export function SignOutButton() {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  function handleSignOut() {
-    startTransition(async () => {
-      const supabase = createSupabaseBrowserClient();
-      if (!supabase) return;
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      router.push("/login");
-      router.refresh();
-    });
-  }
+function SignOutSubmitButton({ className }: { className: string }) {
+  const { pending } = useFormStatus();
 
   return (
     <button
-      type="button"
-      onClick={handleSignOut}
-      disabled={isPending}
-      className="button-secondary px-6 py-3 disabled:cursor-not-allowed disabled:opacity-50"
+      type="submit"
+      disabled={pending}
+      className={`${className} disabled:cursor-not-allowed disabled:opacity-50`}
     >
-      {isPending ? "Cerrando sesión..." : "Cerrar sesión"}
+      {pending ? "Cerrando sesión..." : "Cerrar sesión"}
     </button>
+  );
+}
+
+export function SignOutButton({
+  className = "button-secondary px-6 py-3",
+}: {
+  className?: string;
+}) {
+  return (
+    <form action={signOutAction}>
+      <SignOutSubmitButton className={className} />
+    </form>
   );
 }
