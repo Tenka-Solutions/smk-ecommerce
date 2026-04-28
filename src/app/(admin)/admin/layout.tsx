@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { isSupabaseConfigured } from "@/lib/env";
-import {
-  adminNavigation,
-  siteConfig,
-} from "@/modules/shared/site";
+import { adminNavigation, siteConfig } from "@/modules/shared/site";
 import {
   getAuthenticatedUser,
   getAuthenticatedUserRoles,
@@ -86,8 +84,9 @@ export default async function AdminLayout({
               {user.email}
             </p>
             <p className="mt-2 text-sm text-[var(--color-muted)]">
-              {roles.join(" · ") || "Administrador"}
+              {roles.join(" / ") || "Administrador"}
             </p>
+            <SignOutButton className="button-secondary mt-4 w-full justify-center px-4 py-3 text-sm" />
           </div>
 
           <div className="mt-8 text-sm text-[var(--color-muted)]">
