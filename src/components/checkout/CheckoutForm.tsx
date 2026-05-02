@@ -12,6 +12,7 @@ import {
 } from "@/modules/checkout/schema";
 
 type Errors = Record<string, string>;
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 const initialForm = {
   documentType: "boleta" as "boleta" | "factura",
@@ -126,7 +127,7 @@ export function CheckoutForm({
     }
 
     startTransition(async () => {
-      const response = await fetch("/api/payments/checkout/init", {
+      const response = await fetch(`${apiBaseUrl}/api/orders/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...validationResult.data, method: "flow" }),

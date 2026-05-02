@@ -62,6 +62,7 @@ export interface AdminOrderDeletionEligibility {
 export interface AdminOrderFilters {
   query?: string;
   orderStatus?: AdminOrderStatus;
+  paymentStatus?: PaymentStatus;
   dateFrom?: string;
   dateTo?: string;
   archived?: AdminArchivedFilter;
@@ -435,6 +436,10 @@ export async function getAdminOrdersPageData(
 
   if (filters.orderStatus) {
     query = query.eq("order_status", filters.orderStatus);
+  }
+
+  if (filters.paymentStatus) {
+    query = query.eq("payment_status", filters.paymentStatus);
   }
 
   if (filters.dateFrom) {

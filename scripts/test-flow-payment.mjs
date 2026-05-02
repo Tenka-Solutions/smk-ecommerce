@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 if (!url || !key) {
   console.error("Missing SUPABASE env");
@@ -35,7 +35,7 @@ if (orderError) {
 
 console.log("Order created:", order);
 
-const response = await fetch("http://localhost:3000/api/payments/create", {
+const response = await fetch(`${siteUrl}/api/payments/create`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ orderId: order.id, method: "flow" }),

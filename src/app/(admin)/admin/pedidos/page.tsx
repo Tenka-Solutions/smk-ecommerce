@@ -17,6 +17,7 @@ import type {
   AdminOrderListItem,
   AdminOrderStatus,
 } from "@/modules/orders/admin";
+import type { PaymentStatus } from "@/modules/orders/service";
 import {
   archiveOrderAction,
   deleteOrderPermanentlyAction,
@@ -27,6 +28,7 @@ import {
 type SearchParams = Promise<{
   q?: string;
   estadoPedido?: string;
+  estadoPago?: string;
   fechaDesde?: string;
   fechaHasta?: string;
   archivado?: string;
@@ -90,6 +92,13 @@ const orderStatusLabels: Record<AdminOrderStatus, string> = {
   rejected: "Rechazado",
 };
 
+const paymentStatusLabels: Record<PaymentStatus, string> = {
+  pending: "Pendiente de pago",
+  paid: "Pagado",
+  rejected: "Rechazado",
+  cancelled: "Anulado",
+};
+
 function toOrderStatus(value?: string): AdminOrderStatus | undefined {
   return ADMIN_ORDER_STATUSES.includes(value as AdminOrderStatus)
     ? (value as AdminOrderStatus)
@@ -100,6 +109,12 @@ function toArchivedFilter(value?: string): AdminArchivedFilter {
   return ["active", "archived", "all"].includes(value ?? "")
     ? (value as AdminArchivedFilter)
     : "active";
+}
+
+function toPaymentStatus(value?: string): PaymentStatus | undefined {
+  return ["pending", "paid", "rejected", "cancelled"].includes(value ?? "")
+    ? (value as PaymentStatus)
+    : undefined;
 }
 
 function buildOrdersHref(params: Record<string, string | undefined>) {
@@ -204,7 +219,7 @@ function ContactActions({ order }: { order: AdminOrderListItem }) {
           rel="noreferrer"
           className="button-secondary px-4 py-2 text-xs"
         >
-          WhatsApp
+          Contactar WhatsApp
         </a>
       ) : null}
       {phoneHref ? (
@@ -220,10 +235,14 @@ function OrderCard({
   order,
   detailHref,
   isSelected,
+  canMutate,
+  returnTo,
 }: {
   order: AdminOrderListItem;
   detailHref: string;
   isSelected: boolean;
+  canMutate: boolean;
+  returnTo: string;
 }) {
   return (
     <article
@@ -266,6 +285,32 @@ function OrderCard({
 
         <div className="flex flex-wrap gap-2 md:justify-end">
           <ContactActions order={order} />
+          <form action={updateOrderAction}>
+            <input type="hidden" name="orderId" value={order.id} />
+            <input type="hidden" name="orderStatus" value="preparing" />
+            <input type="hidden" name="internalNote" value={order.internalNote ?? ""} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button
+              type="submit"
+              disabled={!canMutate || order.orderStatus === "preparing"}
+              className="button-secondary px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Marcar en preparacion
+            </button>
+          </form>
+          <form action={updateOrderAction}>
+            <input type="hidden" name="orderId" value={order.id} />
+            <input type="hidden" name="orderStatus" value="delivered" />
+            <input type="hidden" name="internalNote" value={order.internalNote ?? ""} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button
+              type="submit"
+              disabled={!canMutate || order.orderStatus === "delivered"}
+              className="button-secondary px-4 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Marcar despachado
+            </button>
+          </form>
           <Link href={detailHref} className="button-primary px-4 py-2 text-xs">
             Ver detalle
           </Link>
@@ -591,6 +636,7 @@ export default async function AdminOrdersPage({
   const filters = {
     query: params.q,
     orderStatus: toOrderStatus(params.estadoPedido),
+    paymentStatus: toPaymentStatus(params.estadoPago),
     dateFrom: params.fechaDesde,
     dateTo: params.fechaHasta,
     archived: archivedFilter,
@@ -603,6 +649,7 @@ export default async function AdminOrdersPage({
   const baseParams = {
     q: params.q,
     estadoPedido: params.estadoPedido,
+    estadoPago: params.estadoPago,
     fechaDesde: params.fechaDesde,
     fechaHasta: params.fechaHasta,
     archivado: params.archivado,
@@ -653,7 +700,7 @@ export default async function AdminOrdersPage({
       ) : null}
 
       <section className="panel-card rounded-[2rem] p-5 sm:p-6">
-        <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_190px_170px_170px_180px_auto_auto] xl:items-end">
+        <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_190px_190px_170px_170px_180px_auto_auto] xl:items-end">
           <label className="grid gap-2 text-sm font-semibold">
             Buscar pedido o cliente
             <input
@@ -665,7 +712,7 @@ export default async function AdminOrdersPage({
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
-            Estado
+            Estado gestion
             <select
               name="estadoPedido"
               defaultValue={params.estadoPedido ?? ""}
@@ -675,6 +722,22 @@ export default async function AdminOrdersPage({
               {ADMIN_ORDER_STATUSES.map((status) => (
                 <option key={status} value={status}>
                   {orderStatusLabels[status]}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold">
+            Estado pago
+            <select
+              name="estadoPago"
+              defaultValue={params.estadoPago ?? ""}
+              className="form-input"
+            >
+              <option value="">Todos</option>
+              {Object.entries(paymentStatusLabels).map(([status, label]) => (
+                <option key={status} value={status}>
+                  {label}
                 </option>
               ))}
             </select>
@@ -747,6 +810,8 @@ export default async function AdminOrdersPage({
                 detalle: order.id,
               })}
               isSelected={params.detalle === order.id}
+              canMutate={pageData.canMutate}
+              returnTo={buildOrdersHref(baseParams)}
             />
           ))
         ) : (

@@ -147,7 +147,7 @@ export interface OrderDetail extends OrderListItem {
   } | null;
 }
 
-function buildOrderNumber() {
+export function buildOrderNumber() {
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const fragment = randomUUID().slice(0, 8).toUpperCase();
   return `SMK-${stamp}-${fragment}`;
