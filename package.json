@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "start:cotizacion": "node server/cotizacion-server.js",
     "server:cpanel": "node server/cotizacion-server.js",
     "build": "next build",
     "start": "next start",
