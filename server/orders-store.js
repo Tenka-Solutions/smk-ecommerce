@@ -3,161 +3,227 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 
-const dataDir = path.join(__dirname, "data");
-const ordersFile = path.join(dataDir, "orders.json");
-const stockFile = path.join(dataDir, "products-stock.json");
+const DATA_DIR = path.join(__dirname, "data");
+const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
+const STOCK_FILE = path.join(DATA_DIR, "products-stock.json");
 
-async function ensureJsonFile(filePath, fallback) {
-  await fs.mkdir(dataDir, { recursive: true });
+function nowIso() {
+  return new Date().toISOString();
+}
 
-  try {
-    await fs.readFile(filePath, "utf8");
-  } catch {
-    await fs.writeFile(filePath, `${JSON.stringify(fallback, null, 2)}\n`, "utf8");
-  }
+function buildOrderNumber(date = new Date()) {
+  const stamp = date.toISOString().slice(0, 10).replace(/-/g, "");
+  const suffix = randomUUID().replace(/-/g, "").slice(0, 4).toUpperCase();
+  return `SMK-${stamp}-${suffix}`;
+}
+
+async function writeJson(filePath, data) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  const tempFile = `${filePath}.tmp`;
+  await fs.writeFile(tempFile, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await fs.rename(tempFile, filePath);
 }
 
 async function readJson(filePath, fallback) {
-  await ensureJsonFile(filePath, fallback);
-  const raw = await fs.readFile(filePath, "utf8");
-
   try {
+    const raw = await fs.readFile(filePath, "utf8");
     return JSON.parse(raw);
-  } catch {
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      await writeJson(filePath, fallback);
+    }
     return fallback;
   }
 }
 
-async function writeJson(filePath, value) {
-  await fs.mkdir(dataDir, { recursive: true });
-  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+async function ensureStore() {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  await readJson(ORDERS_FILE, { orders: [] });
+  await readJson(STOCK_FILE, { products: [] });
+  return true;
 }
 
 async function readOrders() {
-  const orders = await readJson(ordersFile, []);
-  return Array.isArray(orders) ? orders : [];
-}
+  await ensureStore();
+  const data = await readJson(ORDERS_FILE, { orders: [] });
 
-async function writeOrders(orders) {
-  await writeJson(ordersFile, orders);
-}
-
-async function readStock() {
-  const stock = await readJson(stockFile, {});
-
-  if (Array.isArray(stock)) {
-    return Object.fromEntries(
-      stock.map((item) => [
-        String(item.productId || item.id || item.sku),
-        Number(item.stock || item.quantity || 0),
-      ])
-    );
+  if (Array.isArray(data)) {
+    return data;
   }
 
-  return stock && typeof stock === "object" ? stock : {};
+  if (data && Array.isArray(data.orders)) {
+    return data.orders;
+  }
+
+  return [];
 }
 
-async function writeStock(stock) {
-  await writeJson(stockFile, stock);
+async function saveOrders(ordersOrData) {
+  const orders = Array.isArray(ordersOrData)
+    ? ordersOrData
+    : ordersOrData && Array.isArray(ordersOrData.orders)
+      ? ordersOrData.orders
+      : [];
+  await writeJson(ORDERS_FILE, { orders });
+  return orders;
 }
 
-function generarCodigoPedido() {
-  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  return `SMK-${stamp}-${randomUUID().slice(0, 4).toUpperCase()}`;
+function addOrderEvent(order, type, message, meta) {
+  const event = {
+    id: randomUUID(),
+    type,
+    message,
+    meta: meta || {},
+    createdAt: nowIso(),
+  };
+
+  order.events = Array.isArray(order.events) ? order.events : [];
+  order.events.push(event);
+  return event;
 }
 
-async function listarPedidos() {
-  return readOrders();
-}
-
-async function obtenerPedido(idOrCommerceOrder) {
+async function createOrder(orderInput) {
   const orders = await readOrders();
-  return (
-    orders.find(
-      (order) =>
-        order.id === idOrCommerceOrder ||
-        order.commerceOrder === idOrCommerceOrder
-    ) || null
-  );
-}
+  const createdAt = nowIso();
+  const orderNumber = orderInput.orderNumber || buildOrderNumber();
+  const order = {
+    id: orderInput.id || randomUUID(),
+    orderNumber,
+    commerceOrder: orderInput.commerceOrder || orderNumber,
+    customer: orderInput.customer,
+    cart: orderInput.cart,
+    total: orderInput.total,
+    paymentStatus: orderInput.paymentStatus || "PENDIENTE_PAGO",
+    managementStatus: orderInput.managementStatus || "NUEVO",
+    flowToken: orderInput.flowToken || "",
+    flowPaymentId: orderInput.flowPaymentId || "",
+    stockDiscounted: Boolean(orderInput.stockDiscounted),
+    paidEmailSent: Boolean(orderInput.paidEmailSent),
+    events: Array.isArray(orderInput.events) ? orderInput.events : [],
+    createdAt: orderInput.createdAt || createdAt,
+    updatedAt: orderInput.updatedAt || createdAt,
+    paidAt: orderInput.paidAt || "",
+  };
 
-async function guardarPedido(order) {
-  const orders = await readOrders();
+  addOrderEvent(order, "ORDER_CREATED", "Pedido interno creado", {
+    source: orderInput.source || "api",
+  });
   orders.unshift(order);
-  await writeOrders(orders);
+  await saveOrders(orders);
   return order;
 }
 
-async function actualizarPedido(idOrCommerceOrder, updater) {
-  const orders = await readOrders();
-  const index = orders.findIndex(
-    (order) =>
-      order.id === idOrCommerceOrder ||
-      order.commerceOrder === idOrCommerceOrder
+function matchesOrder(order, idOrOrderNumber) {
+  return (
+    order.id === idOrOrderNumber ||
+    order.orderNumber === idOrOrderNumber ||
+    order.commerceOrder === idOrOrderNumber
   );
-
-  if (index < 0) return null;
-
-  const current = orders[index];
-  const next = typeof updater === "function" ? updater(current) : updater;
-  orders[index] = next;
-  await writeOrders(orders);
-  return next;
 }
 
-async function actualizarEstadoPedido(idOrCommerceOrder, patch) {
-  return actualizarPedido(idOrCommerceOrder, (current) => {
-    const now = new Date().toISOString();
-    const estadoPago = patch.estadoPago || current.estadoPago;
-    return {
-      ...current,
-      ...patch,
-      estadoPago,
-      paidAt: estadoPago === "PAGADO" ? current.paidAt || now : current.paidAt,
-      updatedAt: now,
-      historial: [
-        ...(current.historial || []),
-        {
-          tipo: patch.eventType || "status_updated",
-          fecha: now,
-          detalle: patch.eventPayload || patch,
-        },
-      ],
-    };
+function orderSearchText(order) {
+  return [
+    order.id,
+    order.orderNumber,
+    order.commerceOrder,
+    order.customer && order.customer.name,
+    order.customer && order.customer.email,
+    order.customer && order.customer.phone,
+    ...(Array.isArray(order.cart)
+      ? order.cart.flatMap((item) => [item.id, item.sku, item.name])
+      : []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+async function listOrders(filters = {}) {
+  const query = String(filters.q || "").trim().toLowerCase();
+  const orders = await readOrders();
+
+  return orders
+    .filter((order) => {
+      if (filters.paymentStatus && order.paymentStatus !== filters.paymentStatus) {
+        return false;
+      }
+      if (
+        filters.managementStatus &&
+        order.managementStatus !== filters.managementStatus
+      ) {
+        return false;
+      }
+      if (query && !orderSearchText(order).includes(query)) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+}
+
+async function getOrder(idOrOrderNumber) {
+  const orders = await readOrders();
+  return orders.find((order) => matchesOrder(order, idOrOrderNumber)) || null;
+}
+
+async function updateOrder(idOrOrderNumber, updater) {
+  const orders = await readOrders();
+  const index = orders.findIndex((order) => matchesOrder(order, idOrOrderNumber));
+
+  if (index < 0) {
+    return null;
+  }
+
+  const current = orders[index];
+  const draft = JSON.parse(JSON.stringify(current));
+  const updated = typeof updater === "function" ? updater(draft) || draft : updater;
+
+  updated.updatedAt = nowIso();
+  orders[index] = updated;
+  await saveOrders(orders);
+  return updated;
+}
+
+async function setManagementStatus(idOrOrderNumber, status) {
+  return updateOrder(idOrOrderNumber, (order) => {
+    const previousStatus = order.managementStatus;
+    order.managementStatus = status;
+    addOrderEvent(order, "MANAGEMENT_STATUS_UPDATED", "Estado de gestion actualizado", {
+      previousStatus,
+      status,
+    });
+    return order;
   });
 }
 
-async function descontarStockPedido(order) {
-  const stock = await readStock();
-  const cambios = [];
-
-  for (const item of order.productos || []) {
-    const productId = String(item.productId || item.sku || item.name);
-    const actual = Number(stock[productId] ?? 0);
-    const siguiente = Math.max(0, actual - Number(item.quantity || 0));
-    stock[productId] = siguiente;
-    cambios.push({
-      productId,
-      antes: actual,
-      despues: siguiente,
-      descontado: actual - siguiente,
+async function markOrderAsPaid(idOrOrderNumber, paymentData = {}) {
+  return updateOrder(idOrOrderNumber, (order) => {
+    const wasPaid = order.paymentStatus === "PAGADO";
+    order.paymentStatus = "PAGADO";
+    order.paidAt = order.paidAt || nowIso();
+    order.flowToken = paymentData.token || order.flowToken || "";
+    order.flowPaymentId = paymentData.flowPaymentId || order.flowPaymentId || "";
+    order.payment = paymentData.summary || order.payment || {};
+    addOrderEvent(order, "PAYMENT_PAID", wasPaid ? "Pago ya estaba confirmado" : "Pago confirmado", {
+      wasPaid,
+      payment: paymentData.summary || {},
     });
-  }
-
-  await writeStock(stock);
-
-  return {
-    descontado: true,
-    cambios,
-  };
+    return order;
+  });
 }
 
 module.exports = {
-  actualizarEstadoPedido,
-  actualizarPedido,
-  descontarStockPedido,
-  generarCodigoPedido,
-  guardarPedido,
-  listarPedidos,
-  obtenerPedido,
+  ensureStore,
+  readOrders,
+  saveOrders,
+  createOrder,
+  listOrders,
+  getOrder,
+  updateOrder,
+  setManagementStatus,
+  addOrderEvent,
+  markOrderAsPaid,
+  DATA_DIR,
+  ORDERS_FILE,
+  STOCK_FILE,
 };
