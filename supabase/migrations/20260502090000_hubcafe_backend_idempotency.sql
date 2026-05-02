@@ -7,20 +7,20 @@ with duplicated_stock_events as (
     row_number() over (
       partition by order_id, event_type
       order by created_at asc, id asc
-    ) as row_number
+    ) as rn
   from public.order_events
   where event_type = 'stock_discounted'
 )
-update public.order_events event
+update public.order_events as oe
 set
   event_type = 'stock_discounted_duplicate',
-  payload = coalesce(event.payload, '{}'::jsonb) || jsonb_build_object(
+  payload = coalesce(oe.payload, '{}'::jsonb) || jsonb_build_object(
     'duplicateOf', 'stock_discounted',
     'migratedBy', '20260502090000_hubcafe_backend_idempotency'
   )
-using duplicated_stock_events duplicate
-where event.id = duplicate.id
-  and duplicate.row_number > 1;
+from duplicated_stock_events as dse
+where oe.id = dse.id
+  and dse.rn > 1;
 
 create unique index if not exists order_events_stock_discounted_once_idx
   on public.order_events (order_id, event_type)
@@ -32,24 +32,24 @@ with duplicated_email_logs as (
     row_number() over (
       partition by order_id, template_key
       order by created_at asc, id asc
-    ) as row_number
+    ) as rn
   from public.email_logs
   where order_id is not null
     and status in ('sending', 'sent')
 )
-update public.email_logs log
+update public.email_logs as el
 set
   status = 'duplicate',
   error_message = coalesce(error_message, 'Marcado como duplicado por migracion Hub Cafe.')
-from duplicated_email_logs duplicate
-where log.id = duplicate.id
-  and duplicate.row_number > 1;
+from duplicated_email_logs as del
+where el.id = del.id
+  and del.rn > 1;
 
 create unique index if not exists email_logs_order_template_active_once_idx
   on public.email_logs (order_id, template_key)
   where order_id is not null
     and status in ('sending', 'sent');
-
+    
 create or replace function public.hubcafe_discount_order_stock_once(p_order_id uuid)
 returns jsonb
 language plpgsql
