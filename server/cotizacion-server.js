@@ -1,25 +1,35 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-require("dotenv").config();
-
 const crypto = require("node:crypto");
+const fs = require("node:fs");
+const fsp = require("node:fs/promises");
+const path = require("node:path");
 const express = require("express");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
 const {
-  actualizarEstadoPedido,
-  descontarStockPedido,
-  generarCodigoPedido,
-  guardarPedido,
-  listarPedidos,
-  obtenerPedido,
+  STOCK_FILE,
+  addOrderEvent,
+  createOrder,
+  ensureStore,
+  getOrder,
+  listOrders,
+  markOrderAsPaid,
+  setManagementStatus,
+  updateOrder,
 } = require("./orders-store");
+
+loadEnvFile(path.join(__dirname, ".env"));
 
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const FLOW_WEBHOOK_PATH = "/api/payments/flow/webhook";
+const FLOW_CONFIRM_PATH = "/api/payments/flow/confirm";
+const FLOW_RETURN_PATH = "/api/payments/flow/return";
+const DEFAULT_FLOW_BASE_URL = "https://www.flow.cl/api";
+const DEFAULT_RETURN_URL = "https://hubcafe.cl/pago-confirmado";
 
-const ESTADOS_PAGO = ["PENDIENTE_PAGO", "PAGADO", "RECHAZADO", "ANULADO"];
-const ESTADOS_GESTION = [
+const PAYMENT_STATUSES = ["PENDIENTE_PAGO", "PAGADO", "RECHAZADO", "ANULADO"];
+const MANAGEMENT_STATUSES = [
   "NUEVO",
   "EN_PREPARACION",
   "LISTO_PARA_DESPACHO",
@@ -27,209 +37,82 @@ const ESTADOS_GESTION = [
   "CANCELADO",
 ];
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
+app.use(cors({ origin: buildCorsOrigin() }));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
+
+function buildCorsOrigin() {
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || process.env.CORS_ORIGIN || "*";
+
+  if (allowedOrigin === "*" || allowedOrigin === "true") {
+    return true;
+  }
+
+  const allowed = allowedOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return (origin, callback) => {
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error("Origen no permitido por CORS"));
+  };
+}
 
 function asyncHandler(handler) {
   return async (req, res, next) => {
     try {
-      await handler(req, res);
+      await handler(req, res, next);
     } catch (error) {
       next(error);
     }
   };
 }
 
-function getPublicBaseUrl(req) {
-  if (process.env.PUBLIC_API_BASE_URL) return process.env.PUBLIC_API_BASE_URL;
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) return process.env.NEXT_PUBLIC_API_BASE_URL;
-  const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
-  return `${protocol}://${req.get("host")}`;
-}
-
-function signFlowParams(params) {
-  const sorted = Object.keys(params)
-    .sort()
-    .map((key) => `${key}=${params[key]}`)
-    .join("&");
-
-  return crypto
-    .createHmac("sha256", process.env.FLOW_SECRET_KEY || "")
-    .update(sorted)
-    .digest("hex");
-}
-
-function isFlowConfigured() {
-  return Boolean(process.env.FLOW_API_KEY && process.env.FLOW_SECRET_KEY);
-}
-
-function getFlowBaseUrl() {
-  return process.env.FLOW_BASE_URL || process.env.FLOW_API_URL || "https://flow.cl/api";
-}
-
-function mapearEstadoFlow(status) {
-  if (status === 2) return "PAGADO";
-  if (status === 3) return "RECHAZADO";
-  if (status === 4) return "ANULADO";
-  return "PENDIENTE_PAGO";
-}
-
-function normalizarCliente(payload) {
-  const cliente = payload.cliente || payload.customer || payload;
-  const nombre = cliente.nombre || cliente.name || cliente.fullName;
-  const email = cliente.email || cliente.correo;
-  const telefono = cliente.telefono || cliente.phone;
-
-  if (!nombre || !email || !telefono) {
-    throw new Error("Cliente incompleto: nombre, email y telefono son requeridos.");
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return;
   }
 
-  return {
-    nombre: String(nombre).trim(),
-    email: String(email).trim(),
-    telefono: String(telefono).trim(),
-    rut: cliente.rut || null,
-    empresa: cliente.empresa || cliente.company || cliente.companyName || null,
-    razonSocial: cliente.razonSocial || cliente.businessName || null,
-    giro: cliente.giro || cliente.businessActivity || null,
-  };
-}
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
 
-function normalizarCarrito(payload) {
-  const carrito = payload.carrito || payload.items || payload.productos || [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
 
-  if (!Array.isArray(carrito) || carrito.length === 0) {
-    throw new Error("El carrito esta vacio.");
-  }
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex < 0) continue;
 
-  return carrito.map((item) => {
-    const quantity = Number(item.cantidad || item.quantity || 1);
-    const unitPriceTaxInc = Number(
-      item.precio || item.price || item.unitPriceTaxInc || item.priceClpTaxInc || 0
-    );
-    const name = item.nombre || item.name || item.title || "Producto";
+    const key = trimmed.slice(0, separatorIndex).trim();
+    let value = trimmed.slice(separatorIndex + 1).trim();
 
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      throw new Error(`Cantidad invalida para ${name}.`);
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
     }
 
-    return {
-      productId: String(item.id || item.productId || item.sku || name),
-      sku: item.sku || null,
-      name: String(name),
-      quantity: Math.round(quantity),
-      unitPriceTaxInc: Math.round(unitPriceTaxInc),
-      lineTotalTaxInc: Math.round(unitPriceTaxInc * quantity),
-    };
-  });
-}
-
-function calcularTotal(productos) {
-  return productos.reduce((total, item) => total + item.lineTotalTaxInc, 0);
-}
-
-function crearPedidoDesdePayload(payload) {
-  const now = new Date().toISOString();
-  const productos = normalizarCarrito(payload);
-  const commerceOrder = generarCodigoPedido();
-
-  return {
-    id: crypto.randomUUID(),
-    commerceOrder,
-    cliente: normalizarCliente(payload),
-    despacho: payload.despacho || payload.shipping || null,
-    productos,
-    total: calcularTotal(productos),
-    estadoPago: "PENDIENTE_PAGO",
-    estadoGestion: "NUEVO",
-    flowPaymentId: null,
-    flowToken: null,
-    stockDescontado: false,
-    historial: [
-      {
-        tipo: "order_created",
-        fecha: now,
-        detalle: { source: "cpanel-express" },
-      },
-    ],
-    createdAt: now,
-    paidAt: null,
-    updatedAt: now,
-  };
-}
-
-async function crearPagoFlow({ pedido, req }) {
-  if (!isFlowConfigured()) return null;
-
-  const publicBaseUrl = getPublicBaseUrl(req);
-  const params = {
-    apiKey: process.env.FLOW_API_KEY,
-    commerceOrder: pedido.commerceOrder,
-    subject: `Pago pedido ${pedido.commerceOrder}`,
-    currency: "CLP",
-    amount: Math.round(pedido.total),
-    email: pedido.cliente.email,
-    urlConfirmation:
-      process.env.FLOW_CONFIRMATION_URL || `${publicBaseUrl}${FLOW_WEBHOOK_PATH}`,
-    urlReturn:
-      process.env.FLOW_RETURN_URL || `${publicBaseUrl}/api/payments/flow/return`,
-    optional: JSON.stringify({
-      orderId: pedido.id,
-      orderNumber: pedido.commerceOrder,
-    }),
-  };
-  const body = new URLSearchParams({
-    ...Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)])),
-    s: signFlowParams(params),
-  });
-  const response = await fetch(`${getFlowBaseUrl()}/payment/create`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`Flow create failed (${response.status}): ${text}`);
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
   }
-
-  const data = JSON.parse(text);
-  return {
-    token: data.token,
-    flowOrder: data.flowOrder,
-    redirectUrl: `${data.url}?token=${data.token}`,
-    raw: data,
-  };
 }
 
-async function consultarEstadoFlow(token) {
-  if (!isFlowConfigured()) {
-    throw new Error("Flow no esta configurado.");
+function createTransporter() {
+  if (!process.env.SMTP_HOST) {
+    return null;
   }
-
-  const params = {
-    apiKey: process.env.FLOW_API_KEY,
-    token,
-  };
-  const query = new URLSearchParams({ ...params, s: signFlowParams(params) });
-  const response = await fetch(`${getFlowBaseUrl()}/payment/getStatus?${query}`);
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`Flow getStatus failed (${response.status}): ${text}`);
-  }
-
-  return JSON.parse(text);
-}
-
-function getTransporter() {
-  if (!process.env.SMTP_HOST) return null;
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: ["true", "1"].includes(String(process.env.SMTP_SECURE || "")),
+    port: Number(process.env.SMTP_PORT || 465),
+    secure: ["true", "1", "yes"].includes(
+      String(process.env.SMTP_SECURE || "true").toLowerCase()
+    ),
     auth:
       process.env.SMTP_USER && process.env.SMTP_PASS
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
@@ -237,123 +120,536 @@ function getTransporter() {
   });
 }
 
-function renderPedidoHtml({ pedido, titulo, intro }) {
-  const productos = pedido.productos
+function isSmtpConfigured() {
+  return Boolean(
+    process.env.SMTP_HOST &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS &&
+      process.env.QUOTE_TO_EMAIL
+  );
+}
+
+function isFlowConfigured() {
+  return Boolean(process.env.FLOW_API_KEY && process.env.FLOW_SECRET_KEY);
+}
+
+function getFlowBaseUrl() {
+  return (process.env.FLOW_BASE_URL || DEFAULT_FLOW_BASE_URL).replace(/\/$/, "");
+}
+
+function signFlowParams(params) {
+  const payload = Object.keys(params)
+    .sort()
+    .map((key) => `${key}${params[key]}`)
+    .join("");
+
+  return crypto
+    .createHmac("sha256", process.env.FLOW_SECRET_KEY || "")
+    .update(payload)
+    .digest("hex");
+}
+
+async function requestFlow(endpoint, params, method = "POST") {
+  if (!isFlowConfigured()) {
+    throw new Error("Flow no esta configurado.");
+  }
+
+  if (typeof fetch !== "function") {
+    throw new Error("Este backend requiere Node.js 18 o superior para usar fetch con Flow.");
+  }
+
+  const signedParams = {
+    ...params,
+    apiKey: process.env.FLOW_API_KEY,
+  };
+  signedParams.s = signFlowParams(signedParams);
+
+  const body = new URLSearchParams();
+  Object.entries(signedParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      body.append(key, String(value));
+    }
+  });
+
+  const url = `${getFlowBaseUrl()}${endpoint}`;
+  const requestUrl = method === "GET" ? `${url}?${body.toString()}` : url;
+  const response = await fetch(requestUrl, {
+    method,
+    headers:
+      method === "GET"
+        ? undefined
+        : { "Content-Type": "application/x-www-form-urlencoded" },
+    body: method === "GET" ? undefined : body,
+  });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Flow respondio ${response.status}: ${text}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Flow respondio un cuerpo invalido: ${text}`);
+  }
+}
+
+async function createFlowPayment(order) {
+  const params = {
+    commerceOrder: order.commerceOrder,
+    subject: `Pedido ${order.orderNumber}`,
+    currency: "CLP",
+    amount: Math.round(order.total),
+    email: order.customer.email,
+    urlConfirmation:
+      process.env.FLOW_CONFIRMATION_URL ||
+      `https://smkvending.cl${FLOW_WEBHOOK_PATH}`,
+    urlReturn: process.env.FLOW_RETURN_URL || DEFAULT_RETURN_URL,
+    optional: JSON.stringify({ orderId: order.id, orderNumber: order.orderNumber }),
+  };
+  const data = await requestFlow("/payment/create", params, "POST");
+
+  return {
+    token: data.token || "",
+    flowPaymentId: data.flowOrder ? String(data.flowOrder) : "",
+    paymentUrl: data.url && data.token ? `${data.url}?token=${data.token}` : null,
+    raw: data,
+  };
+}
+
+async function getFlowPaymentStatus(token) {
+  return requestFlow("/payment/getStatus", { token }, "GET");
+}
+
+function mapFlowPaymentStatus(status) {
+  const numericStatus = Number(status);
+  if (numericStatus === 2) return "PAGADO";
+  if (numericStatus === 3) return "RECHAZADO";
+  if (numericStatus === 4) return "ANULADO";
+  return "PENDIENTE_PAGO";
+}
+
+function getFlowToken(req) {
+  return (
+    (req.body && req.body.token) ||
+    (req.query && req.query.token) ||
+    ""
+  ).toString();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function validateEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function normalizeCustomer(payload) {
+  const input = payload.customer || payload.cliente || payload;
+  const name = String(input.name || input.nombre || input.fullName || "").trim();
+  const email = normalizeEmail(input.email || input.correo);
+  const phone = String(input.phone || input.telefono || "").trim();
+  const message = String(input.message || input.mensaje || payload.message || "").trim();
+
+  if (!name) throw new Error("El nombre del cliente es requerido.");
+  if (!validateEmail(email)) throw new Error("El correo del cliente es invalido.");
+  if (!phone) throw new Error("El telefono del cliente es requerido.");
+
+  return { name, email, phone, message };
+}
+
+function normalizeCart(payload) {
+  const input = payload.cart || payload.carrito || payload.items || payload.productos;
+
+  if (!Array.isArray(input) || input.length === 0) {
+    throw new Error("El carrito es requerido.");
+  }
+
+  return input.map((item, index) => {
+    const name = String(item.name || item.nombre || item.title || "").trim();
+    const id = String(item.id || item.productId || item.product_id || item.sku || name).trim();
+    const sku = String(item.sku || item.codigo || item.code || "").trim();
+    const quantity = Math.round(Number(item.quantity || item.cantidad || 0));
+    const rawPrice =
+      item.price ??
+      item.precio ??
+      item.unitPriceTaxInc ??
+      item.priceClpTaxInc ??
+      item.lineTotalTaxInc;
+    const price = Math.round(Number(rawPrice || 0));
+
+    if (!name) throw new Error(`El producto ${index + 1} no tiene nombre.`);
+    if (!quantity || quantity <= 0) {
+      throw new Error(`La cantidad de ${name} es invalida.`);
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error(`El precio de ${name} es invalido.`);
+    }
+
+    return { id, sku, name, quantity, price };
+  });
+}
+
+function calculateCartTotal(cart) {
+  return cart.reduce((total, item) => total + item.quantity * item.price, 0);
+}
+
+function validatePayload(payload) {
+  const customer = normalizeCustomer(payload || {});
+  const cart = normalizeCart(payload || {});
+  const calculatedTotal = calculateCartTotal(cart);
+  const submittedTotal = Number(payload && payload.total);
+  const total =
+    Number.isFinite(submittedTotal) && submittedTotal > 0
+      ? Math.round(submittedTotal)
+      : calculatedTotal;
+
+  if (total !== calculatedTotal) {
+    return { customer, cart, total: calculatedTotal };
+  }
+
+  return { customer, cart, total };
+}
+
+function buildTextMail(order) {
+  const lines = [
+    `Pedido: ${order.orderNumber}`,
+    `Cliente: ${order.customer.name}`,
+    `Email: ${order.customer.email}`,
+    `Telefono: ${order.customer.phone}`,
+    `Total: ${formatCurrency(order.total)}`,
+    "",
+    "Productos:",
+    ...order.cart.map(
+      (item) =>
+        `- ${item.quantity} x ${item.name} (${item.sku || item.id}): ${formatCurrency(
+          item.price * item.quantity
+        )}`
+    ),
+  ];
+
+  if (order.customer.message) {
+    lines.push("", `Mensaje: ${order.customer.message}`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildHtmlMail(order, options = {}) {
+  const rows = order.cart
     .map(
       (item) => `
         <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #eee;">${item.name}</td>
-          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
-          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;">$${item.lineTotalTaxInc.toLocaleString("es-CL")}</td>
+          <td style="padding:8px;border-bottom:1px solid #e8e2d8;">${escapeHtml(item.name)}</td>
+          <td style="padding:8px;border-bottom:1px solid #e8e2d8;text-align:center;">${item.quantity}</td>
+          <td style="padding:8px;border-bottom:1px solid #e8e2d8;text-align:right;">${formatCurrency(item.price * item.quantity)}</td>
         </tr>`
     )
     .join("");
+  const adminLink = process.env.ADMIN_PANEL_URL
+    ? `<p><strong>Panel admin:</strong> <a href="${escapeHtml(process.env.ADMIN_PANEL_URL)}">${escapeHtml(process.env.ADMIN_PANEL_URL)}</a></p>`
+    : "";
+  const whatsappPhone = String(order.customer.phone || "").replace(/\D/g, "");
+  const whatsappLink = whatsappPhone
+    ? `<p><strong>WhatsApp:</strong> <a href="https://wa.me/${escapeHtml(whatsappPhone)}">Abrir chat</a></p>`
+    : "";
 
   return `
-    <div style="font-family:Arial,sans-serif;color:#1d1a17;">
-      <h1>${titulo}</h1>
-      <p>${intro}</p>
-      <p><strong>Pedido:</strong> ${pedido.commerceOrder}</p>
-      <p><strong>Cliente:</strong> ${pedido.cliente.nombre} - ${pedido.cliente.email} - ${pedido.cliente.telefono}</p>
-      <p><strong>Estado pago:</strong> ${pedido.estadoPago}</p>
-      <p><strong>Estado gestion:</strong> ${pedido.estadoGestion}</p>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr><th align="left">Producto</th><th>Cant.</th><th align="right">Total</th></tr></thead>
-        <tbody>${productos}</tbody>
+    <div style="font-family:Arial,sans-serif;color:#211a14;line-height:1.45;">
+      <h1>${escapeHtml(options.title || `Pedido ${order.orderNumber}`)}</h1>
+      <p>${escapeHtml(options.intro || "Se registro un pedido en Hub Cafe.")}</p>
+      <p><strong>Codigo pedido:</strong> ${escapeHtml(order.orderNumber)}</p>
+      <p><strong>Cliente:</strong> ${escapeHtml(order.customer.name)}</p>
+      <p><strong>Telefono:</strong> ${escapeHtml(order.customer.phone)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(order.customer.email)}</p>
+      <p><strong>Fecha de pago:</strong> ${escapeHtml(order.paidAt || "Pendiente")}</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+        <thead>
+          <tr>
+            <th align="left" style="padding:8px;border-bottom:2px solid #211a14;">Producto</th>
+            <th style="padding:8px;border-bottom:2px solid #211a14;">Cantidad</th>
+            <th align="right" style="padding:8px;border-bottom:2px solid #211a14;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
       </table>
-      <p style="font-size:18px;"><strong>Total:</strong> $${pedido.total.toLocaleString("es-CL")}</p>
-      <p><strong>Panel admin:</strong> ${process.env.ADMIN_PANEL_URL || ""}</p>
+      <p style="font-size:18px;"><strong>Total:</strong> ${formatCurrency(order.total)}</p>
+      ${adminLink}
+      ${whatsappLink}
     </div>`;
 }
 
-async function enviarEmail({ to, subject, html }) {
-  const transporter = getTransporter();
+async function sendMail({ to, subject, text, html }) {
+  const transporter = createTransporter();
 
   if (!transporter) {
-    console.log("[email:log]", { to, subject });
-    return { logged: true };
+    console.log("[mail] SMTP no configurado; correo no enviado", { to, subject });
+    return { skipped: true };
   }
 
   return transporter.sendMail({
     from: process.env.QUOTE_FROM_EMAIL || process.env.SMTP_USER,
     to,
     subject,
+    text,
     html,
   });
 }
 
-async function enviarEmailCotizacion(pedido) {
-  return enviarEmail({
-    to: process.env.QUOTE_TO_EMAIL || "soporte@smkvending.cl",
-    subject: `Nueva cotizacion/pedido ${pedido.commerceOrder}`,
-    html: renderPedidoHtml({
-      pedido,
-      titulo: "Nueva cotizacion/pedido desde Hub Cafe",
-      intro: "Se registro una nueva solicitud en el sitio.",
+async function sendPaidOrderEmail(order) {
+  return sendMail({
+    to: process.env.QUOTE_TO_EMAIL,
+    subject: `✅ Pedido pagado ${order.orderNumber}`,
+    text: buildTextMail(order),
+    html: buildHtmlMail(order, {
+      title: `Pedido pagado ${order.orderNumber}`,
+      intro: "Flow confirmo el pago. Este pedido queda listo para gestion operativa.",
     }),
   });
 }
 
-async function enviarEmailPedidoPagado(pedido) {
-  return enviarEmail({
-    to: process.env.QUOTE_TO_EMAIL || "soporte@smkvending.cl",
-    subject: `Pedido pagado ${pedido.commerceOrder}`,
-    html: renderPedidoHtml({
-      pedido,
-      titulo: `Pedido pagado ${pedido.commerceOrder}`,
-      intro: "Flow confirmo el pago. Continua la gestion operativa.",
+async function sendQuoteEmail(order) {
+  return sendMail({
+    to: process.env.QUOTE_TO_EMAIL,
+    subject: `Nueva cotizacion ${order.orderNumber}`,
+    text: buildTextMail(order),
+    html: buildHtmlMail(order, {
+      title: `Nueva cotizacion ${order.orderNumber}`,
+      intro: "Se recibio una nueva cotizacion desde Hub Cafe.",
     }),
   });
 }
 
-function extraerFlowToken(req) {
-  return req.body?.token || req.query?.token || null;
+async function readStockData() {
+  await ensureStore();
+  try {
+    const raw = await fsp.readFile(STOCK_FILE, "utf8");
+    const data = JSON.parse(raw);
+
+    if (data && Array.isArray(data.products)) {
+      return data;
+    }
+
+    if (Array.isArray(data)) {
+      return { products: data };
+    }
+
+    if (data && typeof data === "object") {
+      return {
+        products: Object.entries(data).map(([sku, stock]) => ({
+          sku,
+          stock: Number(stock || 0),
+        })),
+      };
+    }
+  } catch {
+    return { products: [] };
+  }
+
+  return { products: [] };
 }
 
-async function crearPedidoPagable(payload, req, iniciarPago) {
-  const pedido = crearPedidoDesdePayload(payload);
-  const flow = iniciarPago ? await crearPagoFlow({ pedido, req }) : null;
-  const now = new Date().toISOString();
-  const pedidoConFlow = {
-    ...pedido,
-    flowPaymentId: flow?.flowOrder ? String(flow.flowOrder) : null,
-    flowToken: flow?.token || null,
-    historial: [
-      ...pedido.historial,
-      ...(flow
-        ? [
-            {
-              tipo: "flow_payment_created",
-              fecha: now,
-              detalle: { flowOrder: flow.flowOrder, token: flow.token },
-            },
-          ]
-        : []),
-    ],
+async function saveStockData(stockData) {
+  await fsp.writeFile(STOCK_FILE, `${JSON.stringify(stockData, null, 2)}\n`, "utf8");
+}
+
+function findStockProduct(products, item) {
+  return products.find((product) => {
+    const keys = [product.sku, product.id, product.name].filter(Boolean).map(String);
+    return keys.includes(String(item.sku || "")) ||
+      keys.includes(String(item.id || "")) ||
+      keys.includes(String(item.name || ""));
+  });
+}
+
+async function discountStockForOrder(order) {
+  if (order.stockDiscounted) {
+    return { discounted: false, warnings: ["El stock ya estaba descontado."] };
+  }
+
+  const stockData = await readStockData();
+  const products = Array.isArray(stockData.products) ? stockData.products : [];
+  const warnings = [];
+  const changes = [];
+
+  for (const item of order.cart || []) {
+    const product = findStockProduct(products, item);
+
+    if (!product) {
+      warnings.push(`No se encontro stock para ${item.sku || item.id || item.name}.`);
+      continue;
+    }
+
+    const previousStock = Number(product.stock ?? product.quantity ?? 0);
+    const nextStock = Math.max(0, previousStock - Number(item.quantity || 0));
+
+    if (previousStock < Number(item.quantity || 0)) {
+      warnings.push(`Stock insuficiente para ${item.name}. Disponible: ${previousStock}.`);
+    }
+
+    product.stock = nextStock;
+    changes.push({
+      id: product.id || "",
+      sku: product.sku || "",
+      name: product.name || item.name,
+      previousStock,
+      nextStock,
+      requestedQuantity: Number(item.quantity || 0),
+    });
+  }
+
+  await saveStockData({ products });
+  return { discounted: true, changes, warnings };
+}
+
+function paymentSummaryFromFlow(flowStatus) {
+  return {
+    provider: "flow",
+    status: flowStatus.status,
+    commerceOrder: flowStatus.commerceOrder || "",
+    flowOrder: flowStatus.flowOrder || "",
+    requestDate: flowStatus.requestDate || "",
+    paymentData: flowStatus.paymentData || null,
   };
+}
 
-  await guardarPedido(pedidoConFlow);
-  return { pedido: pedidoConFlow, flow };
+async function processFlowToken(token) {
+  const flowStatus = await getFlowPaymentStatus(token);
+  const commerceOrder = flowStatus.commerceOrder || flowStatus.commerce_order || "";
+  const paymentStatus = mapFlowPaymentStatus(flowStatus.status);
+  const existingOrder = await getOrder(commerceOrder);
+
+  if (!existingOrder) {
+    return {
+      ok: true,
+      found: false,
+      order: null,
+      flowStatus,
+      paymentStatus,
+    };
+  }
+
+  let order = existingOrder;
+
+  if (paymentStatus === "PAGADO") {
+    order = await markOrderAsPaid(order.id, {
+      token,
+      flowPaymentId: flowStatus.flowOrder ? String(flowStatus.flowOrder) : "",
+      summary: paymentSummaryFromFlow(flowStatus),
+    });
+
+    if (!order.stockDiscounted) {
+      const stockResult = await discountStockForOrder(order);
+      order = await updateOrder(order.id, (draft) => {
+        draft.stockDiscounted = true;
+        addOrderEvent(draft, "STOCK_DISCOUNTED", "Stock descontado para pedido pagado", stockResult);
+        return draft;
+      });
+    }
+
+    if (!order.paidEmailSent) {
+      await sendPaidOrderEmail(order);
+      order = await updateOrder(order.id, (draft) => {
+        draft.paidEmailSent = true;
+        addOrderEvent(draft, "PAID_EMAIL_SENT", "Correo de pedido pagado enviado al admin", {
+          to: process.env.QUOTE_TO_EMAIL || "",
+        });
+        return draft;
+      });
+    }
+  } else if (PAYMENT_STATUSES.includes(paymentStatus)) {
+    order = await updateOrder(order.id, (draft) => {
+      const previousStatus = draft.paymentStatus;
+      draft.paymentStatus = paymentStatus;
+      draft.flowToken = token || draft.flowToken || "";
+      draft.flowPaymentId = flowStatus.flowOrder
+        ? String(flowStatus.flowOrder)
+        : draft.flowPaymentId || "";
+      draft.payment = paymentSummaryFromFlow(flowStatus);
+      addOrderEvent(draft, "FLOW_STATUS_UPDATED", "Estado de pago actualizado desde Flow", {
+        previousStatus,
+        paymentStatus,
+        flowStatus: flowStatus.status,
+      });
+      return draft;
+    });
+  }
+
+  return { ok: true, found: true, order, flowStatus, paymentStatus };
+}
+
+function buildReturnUrl(result, baseUrl) {
+  const status =
+    result.paymentStatus === "PAGADO"
+      ? "success"
+      : result.paymentStatus === "PENDIENTE_PAGO"
+        ? "pending"
+        : "failed";
+  const orderNumber =
+    (result.order && result.order.orderNumber) ||
+    (result.flowStatus && result.flowStatus.commerceOrder) ||
+    "";
+  const url = new URL(baseUrl);
+  url.searchParams.set("status", status);
+  if (orderNumber) {
+    url.searchParams.set("order", orderNumber);
+  }
+  return url.toString();
 }
 
 app.get(
   "/health",
   asyncHandler(async (_req, res) => {
-    res.json({ ok: true, service: "smk-cotizacion-server" });
+    let ordersStoreReady = false;
+
+    try {
+      ordersStoreReady = await ensureStore();
+    } catch {
+      ordersStoreReady = false;
+    }
+
+    res.json({
+      ok: true,
+      service: "cotizacion-mail",
+      smtpConfigured: isSmtpConfigured(),
+      flowConfigured: isFlowConfigured(),
+      ordersStoreReady,
+    });
   })
 );
 
 app.post(
   "/enviar-cotizacion",
   asyncHandler(async (req, res) => {
-    const { pedido } = await crearPedidoPagable(req.body, req, false);
-    await enviarEmailCotizacion(pedido);
+    const orderData = validatePayload(req.body || {});
+    const order = await createOrder({ ...orderData, source: "enviar-cotizacion" });
+    await sendQuoteEmail(order);
+
     res.status(201).json({
       ok: true,
-      id: pedido.id,
-      commerceOrder: pedido.commerceOrder,
-      estadoPago: pedido.estadoPago,
-      estadoGestion: pedido.estadoGestion,
+      id: order.id,
+      orderNumber: order.orderNumber,
+      commerceOrder: order.commerceOrder,
+      paymentStatus: order.paymentStatus,
+      managementStatus: order.managementStatus,
     });
   })
 );
@@ -361,15 +657,39 @@ app.post(
 app.post(
   "/api/orders/create",
   asyncHandler(async (req, res) => {
-    const { pedido, flow } = await crearPedidoPagable(req.body, req, req.body?.iniciarPago !== false);
+    const orderData = validatePayload(req.body || {});
+    let order = await createOrder({ ...orderData, source: "api-orders-create" });
+    let paymentUrl = null;
+    let token = null;
+    let warning;
+
+    if (isFlowConfigured()) {
+      const flowPayment = await createFlowPayment(order);
+      paymentUrl = flowPayment.paymentUrl;
+      token = flowPayment.token;
+      order = await updateOrder(order.id, (draft) => {
+        draft.flowToken = flowPayment.token || "";
+        draft.flowPaymentId = flowPayment.flowPaymentId || "";
+        addOrderEvent(draft, "FLOW_PAYMENT_CREATED", "Pago Flow creado", {
+          flowPaymentId: flowPayment.flowPaymentId,
+          token: flowPayment.token,
+        });
+        return draft;
+      });
+    } else {
+      warning = "Flow no configurado";
+      order = await updateOrder(order.id, (draft) => {
+        addOrderEvent(draft, "FLOW_NOT_CONFIGURED", warning, {});
+        return draft;
+      });
+    }
+
     res.status(201).json({
       ok: true,
-      id: pedido.id,
-      commerceOrder: pedido.commerceOrder,
-      estadoPago: pedido.estadoPago,
-      estadoGestion: pedido.estadoGestion,
-      flowToken: pedido.flowToken,
-      redirectUrl: flow?.redirectUrl || null,
+      order,
+      paymentUrl,
+      token,
+      ...(warning ? { warning } : {}),
     });
   })
 );
@@ -377,152 +697,136 @@ app.post(
 app.get(
   "/api/orders",
   asyncHandler(async (req, res) => {
-    const { estadoPago, estadoGestion } = req.query;
-    let orders = await listarPedidos();
-
-    if (estadoPago) orders = orders.filter((order) => order.estadoPago === estadoPago);
-    if (estadoGestion) orders = orders.filter((order) => order.estadoGestion === estadoGestion);
-
-    res.json({ orders });
+    const orders = await listOrders({
+      paymentStatus: req.query.paymentStatus,
+      managementStatus: req.query.managementStatus,
+      q: req.query.q,
+    });
+    res.json({ ok: true, orders });
   })
 );
 
 app.get(
   "/api/orders/:id",
   asyncHandler(async (req, res) => {
-    const pedido = await obtenerPedido(req.params.id);
+    const order = await getOrder(req.params.id);
 
-    if (!pedido) {
-      res.status(404).json({ error: "Pedido no encontrado" });
+    if (!order) {
+      res.status(404).json({ ok: false, error: "Pedido no encontrado" });
       return;
     }
 
-    res.json({ order: pedido });
+    res.json({ ok: true, order });
   })
 );
 
 app.patch(
   "/api/orders/:id/status",
   asyncHandler(async (req, res) => {
-    const { estadoPago, estadoGestion } = req.body || {};
+    const status = req.body && (req.body.managementStatus || req.body.estadoGestion);
 
-    if (estadoPago && !ESTADOS_PAGO.includes(estadoPago)) {
-      res.status(400).json({ error: "estadoPago invalido" });
+    if (!MANAGEMENT_STATUSES.includes(status)) {
+      res.status(400).json({ ok: false, error: "managementStatus invalido" });
       return;
     }
 
-    if (estadoGestion && !ESTADOS_GESTION.includes(estadoGestion)) {
-      res.status(400).json({ error: "estadoGestion invalido" });
+    const order = await setManagementStatus(req.params.id, status);
+
+    if (!order) {
+      res.status(404).json({ ok: false, error: "Pedido no encontrado" });
       return;
     }
 
-    const pedido = await actualizarEstadoPedido(req.params.id, {
-      ...(estadoPago ? { estadoPago } : {}),
-      ...(estadoGestion ? { estadoGestion } : {}),
-      eventType: "admin_status_updated",
-      eventPayload: { estadoPago: estadoPago || null, estadoGestion: estadoGestion || null },
-    });
-
-    if (!pedido) {
-      res.status(404).json({ error: "Pedido no encontrado" });
-      return;
-    }
-
-    res.json({ ok: true, order: pedido });
+    res.json({ ok: true, order });
   })
 );
 
 app.post(
   FLOW_WEBHOOK_PATH,
   asyncHandler(async (req, res) => {
-    const token = extraerFlowToken(req);
+    const token = getFlowToken(req);
 
     if (!token) {
-      res.status(400).json({ error: "token missing" });
+      res.status(400).json({ ok: false, error: "token requerido" });
       return;
     }
 
-    // Flow notifica un token; este backend consulta getStatus con firma privada
-    // antes de actualizar el pedido, descontar stock o enviar correo.
-    const flowStatus = await consultarEstadoFlow(token);
-    const estadoPago = mapearEstadoFlow(flowStatus.status);
-    const pedidoActual = await obtenerPedido(flowStatus.commerceOrder);
-
-    if (!pedidoActual) {
-      res.json({
-        ok: true,
-        skipped: "order-not-found",
-        commerceOrder: flowStatus.commerceOrder,
-      });
-      return;
-    }
-
-    const yaEstabaPagado = pedidoActual.estadoPago === "PAGADO";
-    let stockResult = null;
-
-    if (estadoPago === "PAGADO" && !yaEstabaPagado && !pedidoActual.stockDescontado) {
-      stockResult = await descontarStockPedido(pedidoActual);
-    }
-
-    const pedido = await actualizarEstadoPedido(pedidoActual.id, {
-      estadoPago,
-      flowPaymentId: String(flowStatus.flowOrder || pedidoActual.flowPaymentId || ""),
-      flowToken: token,
-      stockDescontado:
-        pedidoActual.stockDescontado || Boolean(stockResult?.descontado),
-      eventType: "flow_webhook_confirmed",
-      eventPayload: {
-        flowStatus: flowStatus.status,
-        commerceOrder: flowStatus.commerceOrder,
-        alreadyPaid: yaEstabaPagado,
-        stockResult,
-      },
-    });
-
-    if (estadoPago === "PAGADO" && !yaEstabaPagado) {
-      await enviarEmailPedidoPagado(pedido);
-    }
-
-    res.json({
+    const result = await processFlowToken(token);
+    res.status(200).json({
       ok: true,
-      commerceOrder: flowStatus.commerceOrder,
-      estadoPago,
-      alreadyPaid: yaEstabaPagado,
-      stockDescontado: Boolean(stockResult?.descontado),
+      found: result.found,
+      order: result.order
+        ? {
+            id: result.order.id,
+            orderNumber: result.order.orderNumber,
+            paymentStatus: result.order.paymentStatus,
+          }
+        : null,
     });
   })
 );
 
-app.post("/api/payments/flow/confirm", (req, res, next) => {
-  req.url = FLOW_WEBHOOK_PATH;
-  app.handle(req, res, next);
-});
+app.post(
+  FLOW_CONFIRM_PATH,
+  asyncHandler(async (req, res) => {
+    const token = getFlowToken(req);
+
+    if (!token) {
+      res.status(400).json({ ok: false, error: "token requerido" });
+      return;
+    }
+
+    const result = await processFlowToken(token);
+    res.status(200).json({
+      ok: true,
+      found: result.found,
+      paymentStatus: result.paymentStatus,
+    });
+  })
+);
 
 app.get(
-  "/api/payments/flow/return",
+  FLOW_RETURN_PATH,
   asyncHandler(async (req, res) => {
-    const token = extraerFlowToken(req);
-    const redirectBase = process.env.FLOW_RETURN_REDIRECT_URL || process.env.ADMIN_PANEL_URL;
+    const token = getFlowToken(req);
 
-    if (!token || !redirectBase) {
-      res.json({ ok: Boolean(token), token: token || null });
+    if (!token) {
+      res.status(400).send("<h1>Pago sin token</h1>");
       return;
     }
 
-    const query = new URLSearchParams({ token: String(token) });
-    res.redirect(`${redirectBase}${redirectBase.includes("?") ? "&" : "?"}${query}`);
+    const result = await processFlowToken(token);
+
+    if (process.env.FLOW_RETURN_URL) {
+      res.redirect(buildReturnUrl(result, process.env.FLOW_RETURN_URL));
+      return;
+    }
+
+    res
+      .status(200)
+      .send(
+        `<h1>Pago ${escapeHtml(result.paymentStatus)}</h1><p>Pedido: ${escapeHtml(
+          result.order ? result.order.orderNumber : ""
+        )}</p>`
+      );
   })
 );
 
-// Express reconoce los manejadores de error por sus 4 argumentos.
+// Express identifica este middleware de error por sus cuatro argumentos.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((error, _req, res, _next) => {
-  console.error(error);
-  res.status(500).json({
-    error: error instanceof Error ? error.message : "Error interno",
-  });
+  const message = error instanceof Error ? error.message : "Error interno";
+  console.error("[server:error]", message);
+  res.status(500).json({ ok: false, error: message });
 });
 
-app.listen(PORT, () => {
-  console.log(`SMK cotizacion server escuchando en puerto ${PORT}`);
-});
+ensureStore()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`SMK cotizacion server escuchando en puerto ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("[server:start]", error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
