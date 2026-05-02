@@ -4,6 +4,10 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { StatusBadge } from "@/components/feedback/StatusBadge";
 import { formatClp } from "@/lib/format/currency";
 import {
+  formatPaymentProvider,
+  isLegacyPaymentProvider,
+} from "@/modules/orders/payment-provider";
+import {
   ADMIN_ORDER_DELETE_CONFIRMATION,
   ADMIN_ORDER_STATUSES,
   getAdminOrderDeletionEligibility,
@@ -279,7 +283,7 @@ function OrderCard({
             {formatClp(order.totalTaxInc)}
           </p>
           <p className="text-xs text-[var(--color-muted-foreground)]">
-            Pago {order.paymentProvider ?? "por confirmar"}
+            Método de pago: {formatPaymentProvider(order.paymentProvider)}
           </p>
         </div>
 
@@ -355,8 +359,9 @@ function OrderDetailPanel({
     paymentAttemptStatus: order.paymentAttemptStatus,
     hasConfirmedPaymentAttempt: order.hasConfirmedPaymentAttempt,
   });
-  const paymentMethod =
-    order.paymentProvider ?? order.paymentAttemptProvider ?? "Por confirmar";
+  const paymentMethod = formatPaymentProvider(
+    order.paymentProvider ?? order.paymentAttemptProvider
+  );
 
   return (
     <section className="panel-card rounded-[2rem] p-6 sm:p-8">
@@ -381,10 +386,16 @@ function OrderDetailPanel({
 
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DetailLine label="Fecha" value={formatDateTime(order.createdAt)} />
-        <DetailLine label="Metodo de pago" value={paymentMethod} />
+        <DetailLine label="Método de pago" value={paymentMethod} />
         <DetailLine label="Referencia pago" value={order.paymentAttemptReference} />
         <DetailLine label="Total" value={formatClp(order.totalTaxInc)} />
       </div>
+
+      {isLegacyPaymentProvider(order.paymentProvider) ? (
+        <p className="mt-4 rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)] px-4 py-3 text-xs leading-5 text-[var(--color-muted-foreground)]">
+          Pedido registrado con flujo anterior. Se conserva para trazabilidad.
+        </p>
+      ) : null}
 
       <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="grid gap-6">
