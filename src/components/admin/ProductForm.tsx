@@ -318,7 +318,7 @@ export function ProductForm({
                 product?.longDescription ?? ""
               )}
               className="form-input min-h-36"
-              placeholder="Detalle del producto. Puedes dejar placeholders pendientes si falta informacion real."
+              placeholder="Detalle del producto. Puedes completar informacion pendiente cuando este disponible."
               disabled={!canMutate}
             />
             <FormFieldError message={state.fieldErrors?.longDescription} />

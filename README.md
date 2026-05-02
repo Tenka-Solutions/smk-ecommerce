@@ -8,7 +8,7 @@ Base de ecommerce profesional construida con Next.js 16, React 19, TypeScript y 
 - React + TypeScript
 - Tailwind CSS v4
 - Supabase para backend, auth y persistencia
-- Getnet como gateway de pago preparado para integración
+- Flow como gateway de pago operativo en el backend independiente
 - Resend como proveedor de correos transaccionales
 
 ## Puesta en marcha
@@ -37,12 +37,13 @@ supabase db reset
 npm run dev
 ```
 
-## Modos de integración
+## Flujo de producción
 
-- `PAYMENTS_MODE=mock`: flujo local listo para demo y QA visual.
-- `PAYMENTS_MODE=getnet`: preparado para conectar la integración final del comercio.
-- `EMAIL_MODE=log`: registra correos en consola.
-- `EMAIL_MODE=resend`: envía correos reales usando Resend.
+- El checkout público usa `NEXT_PUBLIC_API_BASE_URL`.
+- En producción debe apuntar a `https://smkvending.cl/hubcafe-api`.
+- El backend real de pedidos, Flow, stock y correos está en `hubcafe-backend/`.
+- `PAYMENTS_MODE=mock` pertenece solo al flujo legacy de Next API y no se usa para el checkout real de Hub Café.
+- `EMAIL_MODE=log` y `EMAIL_MODE=resend` pertenecen al flujo legacy de Next. El backend real usa SMTP desde `hubcafe-backend/.env`.
 
 ## Estructura
 

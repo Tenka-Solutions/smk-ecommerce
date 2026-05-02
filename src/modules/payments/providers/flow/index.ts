@@ -53,8 +53,8 @@ export const flowPaymentProvider: PaymentProviderGateway = {
       // ✅ MUST be number for signature
       amount: Math.round(input.amount),
 
-      // ⚠️ ALWAYS valid email
-      email: input.customerEmail ?? "test@hubcafe.cl",
+      // Flow requires a syntactically valid customer email.
+      email: input.customerEmail ?? "pagos@hubcafe.cl",
 
       // ⚠️ MUST be PUBLIC URLs (accessible by Flow)
       urlConfirmation: env.flowConfirmUrl,
