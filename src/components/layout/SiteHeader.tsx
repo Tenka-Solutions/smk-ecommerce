@@ -43,8 +43,8 @@ export function SiteHeader() {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-3">
-          <ThemeToggle className="hidden border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_70%,transparent)] text-[var(--color-header-foreground)] sm:inline-flex" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle className="border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-header)_88%,transparent)] text-[var(--color-header-muted)]" />
           <Link
             href="/login"
             className="hidden text-sm font-medium text-[var(--color-header-muted)] hover:text-[var(--color-header-foreground)] sm:inline-flex"
@@ -98,10 +98,6 @@ export function SiteHeader() {
       {/* Mobile menu */}
       {menuOpen && (
         <nav className="border-t border-[var(--color-border)] bg-[var(--color-header)] px-4 pb-4 pt-2 text-[var(--color-header-foreground)] lg:hidden">
-          <div className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-[var(--color-header-muted)] sm:hidden">
-            <span>Tema</span>
-            <ThemeToggle className="border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-card)_70%,transparent)] text-[var(--color-header-foreground)]" />
-          </div>
           {publicNavigation.map((item) => {
             const isActive = pathname === item.href;
             return (

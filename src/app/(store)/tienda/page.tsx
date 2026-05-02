@@ -1,6 +1,8 @@
 import { CatalogFilters } from "@/components/catalog/CatalogFilters";
+import { CoffeeSupplyFilterBar } from "@/components/catalog/CoffeeSupplyFilterBar";
 import { ProductCard } from "@/components/catalog/ProductCard";
 import { EmptyState } from "@/components/feedback/EmptyState";
+import { isCoffeeSupplyCategory } from "@/modules/catalog/filters";
 import {
   getCatalogCategories,
   getCatalogProducts,
@@ -12,18 +14,21 @@ export default async function StorePage({
   searchParams: Promise<{
     q?: string;
     categoria?: string;
+    filtro?: string;
     sort?: "featured" | "price-asc" | "price-desc" | "name";
   }>;
 }) {
   const params = await searchParams;
-  const [categories, products] = await Promise.all([
-    getCatalogCategories(),
-    getCatalogProducts({
-      query: params.q,
-      category: params.categoria,
-      sort: params.sort ?? "featured",
-    }),
-  ]);
+  const categories = await getCatalogCategories();
+  const showCoffeeSupplyFilters = Boolean(
+    params.categoria && isCoffeeSupplyCategory(params.categoria, categories)
+  );
+  const products = await getCatalogProducts({
+    query: params.q,
+    category: params.categoria,
+    coffeeSupplyFilter: showCoffeeSupplyFilters ? params.filtro : undefined,
+    sort: params.sort ?? "featured",
+  });
 
   return (
     <div className="page-shell pt-5">
@@ -33,6 +38,11 @@ export default async function StorePage({
       <div className="mt-4">
         <CatalogFilters categories={categories} />
       </div>
+      {showCoffeeSupplyFilters ? (
+        <div className="mt-3">
+          <CoffeeSupplyFilterBar />
+        </div>
+      ) : null}
       <div className="mt-3">
         {products.length ? (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

@@ -5,6 +5,7 @@ import {
   CatalogFilters,
   CatalogProduct,
 } from "@/modules/catalog/types";
+import { filterCoffeeSupplyProducts } from "@/modules/catalog/filters";
 
 const publicCategorySlugAliases: Record<string, string> = {
   "cafe-grano": "cafe-en-grano",
@@ -149,6 +150,10 @@ function applyFilters(
     result = result.filter((product) =>
       categoryIds.has(getProductCategoryId(product, categories) ?? "")
     );
+  }
+
+  if (filters.coffeeSupplyFilter) {
+    result = filterCoffeeSupplyProducts(result, filters.coffeeSupplyFilter);
   }
 
   if (filters.featuredOnly) {

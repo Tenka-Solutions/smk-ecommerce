@@ -140,11 +140,11 @@ function ProductAdminCard({
         </div>
 
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-          {getCategoryPath(product)}
+          Familia: {getCategoryPath(product)}
         </p>
         <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
           SKU {product.sku ?? "sin SKU"} · EAN {product.ean ?? "sin EAN"} ·
-          Marca {product.brand ?? "sin marca"}
+          Marca comercial {product.brand ?? "sin marca"}
         </p>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--color-muted-foreground)]">
           {product.shortDescription || "Sin descripcion corta"}
@@ -350,7 +350,7 @@ export default async function AdminProductsPage({
       <section className="panel-card rounded-[2rem] p-5 sm:p-6">
         <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_190px_190px_auto_auto] xl:items-end">
           <label className="grid gap-2 text-sm font-semibold">
-            Buscar por nombre, SKU, marca o EAN
+            Buscar por nombre, SKU, marca comercial o EAN
             <input
               name="q"
               defaultValue={params.q ?? ""}
@@ -360,7 +360,7 @@ export default async function AdminProductsPage({
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
-            Categoria padre
+            Grupo principal
             <select
               name="categoriaPadre"
               defaultValue={selectedParentCategory ?? ""}
@@ -377,7 +377,7 @@ export default async function AdminProductsPage({
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
-            Subcategoria
+            Familia comercial
             <select
               name="subcategoria"
               defaultValue={selectedSubcategory ?? ""}

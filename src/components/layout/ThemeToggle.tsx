@@ -12,16 +12,16 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       onClick={toggleTheme}
       aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={isDark ? "Modo claro" : "Modo oscuro"}
-      className={`group inline-flex h-10 w-10 items-center justify-center rounded-full border ${className}`}
+      className={`group inline-flex h-8 w-8 items-center justify-center rounded-full border text-current shadow-sm hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] ${className}`}
     >
       {isDark ? (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
           <path d="M20.99 13.28A8 8 0 1 1 10.72 3.01 6 6 0 1 0 20.99 13.28Z" />
         </svg>
       ) : (
         <svg
           viewBox="0 0 24 24"
-          className="h-5 w-5"
+          className="h-4 w-4"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"

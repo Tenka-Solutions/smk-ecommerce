@@ -243,7 +243,7 @@ export function ProductForm({
             </label>
 
             <label className="grid gap-2 text-sm font-semibold">
-              Marca
+              Marca comercial
               <input
                 name="brand"
                 defaultValue={valueOrFallback(stateValues?.brand, product?.brand ?? "") ?? ""}
@@ -255,7 +255,7 @@ export function ProductForm({
             </label>
 
             <label className="grid gap-2 text-sm font-semibold">
-              Categoria *
+              Familia / categoria comercial *
               <select
                 name="categoryId"
                 defaultValue={defaultCategoryId}
@@ -263,7 +263,7 @@ export function ProductForm({
                 disabled={!canMutate}
                 onChange={(event) => setSelectedCategoryId(event.target.value)}
               >
-                <option value="">Selecciona una categoria</option>
+                <option value="">Selecciona familia o categoria</option>
                 {parentCategories.map((parent) => (
                   <optgroup
                     key={parent.id}

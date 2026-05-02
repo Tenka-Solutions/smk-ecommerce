@@ -50,6 +50,7 @@ export interface CatalogProduct {
 export interface CatalogFilters {
   query?: string;
   category?: CatalogCategorySlug;
+  coffeeSupplyFilter?: string;
   featuredOnly?: boolean;
   sort?: "featured" | "price-asc" | "price-desc" | "name";
   limit?: number;

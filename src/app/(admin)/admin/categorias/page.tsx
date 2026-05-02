@@ -97,7 +97,7 @@ function CategoryRow({
         <div className="flex flex-wrap items-center gap-2">
           <CategoryStatusPill isActive={category.isActive} />
           <span className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-muted-foreground)]">
-            {isParent ? "Categoria padre" : "Subcategoria"}
+            {isParent ? "Grupo principal" : "Familia comercial"}
           </span>
         </div>
 
@@ -133,7 +133,7 @@ function CategoryRow({
             href={buildCategoriesHref({ nuevo: "1", padre: category.id })}
             className="button-secondary px-4 py-2 text-xs"
           >
-            Crear subcategoria
+            Crear familia
           </Link>
         ) : null}
 
@@ -228,7 +228,7 @@ export default async function AdminCategoriesPage({
                   ? "Supabase"
                   : "Supabase no disponible"}
               </strong>
-              . Organiza categorias padre y subcategorias sin borrar datos
+              . Organiza grupos principales y familias comerciales sin borrar datos
               existentes.
             </p>
           </div>
@@ -256,7 +256,7 @@ export default async function AdminCategoriesPage({
           </div>
           <div className="rounded-[1.25rem] bg-[var(--color-surface-strong)] p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
-              Subcategorias
+              Familias comerciales
             </p>
             <p className="mt-2 text-2xl font-semibold">{childCategories.length}</p>
           </div>
@@ -332,7 +332,7 @@ export default async function AdminCategoriesPage({
         {orphanChildren.length > 0 ? (
           <div className="grid gap-3 rounded-[1.75rem] border border-[color-mix(in_srgb,var(--color-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,var(--color-card)_92%)] p-4">
             <p className="text-sm font-semibold text-[var(--color-card-foreground)]">
-              Subcategorias con padre no encontrado
+              Familias con grupo principal no encontrado
             </p>
             {orphanChildren.map((child) => (
               <CategoryRow
