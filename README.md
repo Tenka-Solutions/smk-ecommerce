@@ -51,3 +51,11 @@ npm run dev
 - `src/modules`: dominio, repositorios y casos de uso
 - `src/lib`: clientes externos, configuración y utilidades
 - `supabase`: migraciones y seed inicial
+
+## Backend real cPanel
+
+El flujo real de produccion para Hub Cafe / SMK Vending esta en `server/cotizacion-server.js`. Es un backend Express CommonJS pensado para ejecutarse en cPanel bajo `public_html/server/cotizacion-server.js`.
+
+Para esta etapa, `src/app/api/**` y `src/modules/**` quedan como implementaciones anteriores/respaldo. El frontend publico `https://hubcafe.cl` debe llamar a la API real de `https://smkvending.cl`.
+
+Ver instrucciones completas en `server/README.md`.
