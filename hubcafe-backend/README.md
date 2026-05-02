@@ -63,6 +63,7 @@ ALLOWED_ORIGIN=https://hubcafe.cl
 
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_API_KEY=
 
 SMTP_HOST=
 SMTP_PORT=465
@@ -141,13 +142,15 @@ curl -X POST http://localhost:3002/orders/create \
 Listar pedidos:
 
 ```bash
-curl "http://localhost:3002/orders?payment_status=pending"
+curl "http://localhost:3002/orders?payment_status=pending" \
+  -H "x-admin-api-key: TU_ADMIN_API_KEY"
 ```
 
 Ver pedido:
 
 ```bash
-curl http://localhost:3002/orders/SMK-YYYYMMDD-XXXXXXXX
+curl http://localhost:3002/orders/SMK-YYYYMMDD-XXXXXXXX \
+  -H "x-admin-api-key: TU_ADMIN_API_KEY"
 ```
 
 Actualizar estado operativo:
@@ -155,6 +158,7 @@ Actualizar estado operativo:
 ```bash
 curl -X PATCH http://localhost:3002/orders/ORDER_ID/status \
   -H "Content-Type: application/json" \
+  -H "x-admin-api-key: TU_ADMIN_API_KEY" \
   -d "{\"orderStatus\":\"EN_PREPARACION\"}"
 ```
 
@@ -179,14 +183,55 @@ curl -X POST http://localhost:3002/quotes/send \
 Stock:
 
 - Se descuenta desde `products.stock_quantity`.
-- Antes de descontar, revisa si existe `order_events.event_type = 'stock_discounted'`.
+- El descuento se ejecuta con la RPC transaccional `hubcafe_discount_order_stock_once`.
+- La migracion `20260502090000_hubcafe_backend_idempotency.sql` agrega un indice unico parcial para `order_events(order_id, event_type)` cuando `event_type = 'stock_discounted'`.
 - Si Flow llama dos veces, el segundo webhook no descuenta stock de nuevo.
 
 Correo:
 
-- Antes de enviar correo de pedido pagado, revisa `email_logs` con `template_key = 'hubcafe_paid_order_admin'`.
-- Despues de enviar, inserta `email_logs`.
+- Antes de enviar correo de pedido pagado, reserva `email_logs` con `status = 'sending'`.
+- La misma migracion agrega un indice unico parcial para `email_logs(order_id, template_key)` cuando el estado esta en `sending` o `sent`.
+- Despues de enviar, actualiza `email_logs` a `sent`.
 - Si Flow llama dos veces, el segundo webhook no duplica correo.
+
+## Endpoints publicos y admin
+
+Publicos:
+
+```txt
+POST /orders/create
+POST /quotes/send
+POST /payments/flow/webhook
+POST /payments/flow/confirm
+GET  /payments/flow/return
+GET  /health
+```
+
+Admin protegidos con `ADMIN_API_KEY`:
+
+```txt
+GET   /orders
+GET   /orders/:id
+PATCH /orders/:id/status
+```
+
+Enviar la API key como:
+
+```txt
+x-admin-api-key: TU_ADMIN_API_KEY
+```
+
+Tambien se acepta `Authorization: Bearer TU_ADMIN_API_KEY`.
+
+## Migracion requerida
+
+Ejecutar en Supabase antes de produccion:
+
+```txt
+supabase/migrations/20260502090000_hubcafe_backend_idempotency.sql
+```
+
+Esta migracion no crea tablas nuevas. Agrega indices unicos parciales y la RPC transaccional para descontar stock una sola vez.
 
 ## Seguridad
 

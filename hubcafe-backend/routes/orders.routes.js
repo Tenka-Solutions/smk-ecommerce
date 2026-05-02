@@ -5,6 +5,7 @@ const {
   mapOrderStatusToSupabase,
   isValidOrderStatus,
 } = require("../lib/status-mapper");
+const { requireAdminApiKey } = require("../middleware/admin-api-key");
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.post("/orders/create", async (req, res, next) => {
   }
 });
 
-router.get("/orders", async (req, res, next) => {
+router.get("/orders", requireAdminApiKey, async (req, res, next) => {
   try {
     const orders = await ordersService.listOrders({
       payment_status: req.query.payment_status,
@@ -32,7 +33,7 @@ router.get("/orders", async (req, res, next) => {
   }
 });
 
-router.get("/orders/:id", async (req, res, next) => {
+router.get("/orders/:id", requireAdminApiKey, async (req, res, next) => {
   try {
     const order = await ordersService.getOrder(req.params.id);
 
@@ -47,7 +48,7 @@ router.get("/orders/:id", async (req, res, next) => {
   }
 });
 
-router.patch("/orders/:id/status", async (req, res, next) => {
+router.patch("/orders/:id/status", requireAdminApiKey, async (req, res, next) => {
   try {
     const rawStatus = req.body && (req.body.orderStatus || req.body.order_status);
     const mappedStatus = mapOrderStatusToSupabase(rawStatus);

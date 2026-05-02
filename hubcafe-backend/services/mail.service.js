@@ -85,13 +85,18 @@ function buildOrderHtml(order) {
 }
 
 async function sendPaidOrderEmail(order) {
-  const existing = await emailLogsRepository.findEmailLog(order.id, PAID_ORDER_TEMPLATE);
-  if (existing) {
-    return { skipped: true, reason: "already_sent" };
-  }
-
   const recipient = process.env.QUOTE_TO_EMAIL;
   const subject = `\u2705 Pedido pagado ${order.order_number}`;
+  const reservation = await emailLogsRepository.reserveEmailLog({
+    orderId: order.id,
+    templateKey: PAID_ORDER_TEMPLATE,
+    recipient,
+    payloadSnapshot: { orderNumber: order.order_number },
+  });
+
+  if (!reservation) {
+    return { skipped: true, reason: "already_reserved_or_sent" };
+  }
 
   try {
     const result = await sendMail({
@@ -101,24 +106,17 @@ async function sendPaidOrderEmail(order) {
       html: buildOrderHtml(order),
     });
 
-    await emailLogsRepository.createEmailLog({
-      orderId: order.id,
-      templateKey: PAID_ORDER_TEMPLATE,
-      recipient,
+    await emailLogsRepository.updateEmailLog(reservation.id, {
       status: "sent",
-      providerMessageId: result && result.messageId,
-      payloadSnapshot: { orderNumber: order.order_number },
+      provider_message_id: result && result.messageId,
+      sent_at: new Date().toISOString(),
     });
 
     return { sent: true };
   } catch (error) {
-    await emailLogsRepository.createEmailLog({
-      orderId: order.id,
-      templateKey: PAID_ORDER_TEMPLATE,
-      recipient,
+    await emailLogsRepository.updateEmailLog(reservation.id, {
       status: "error",
-      errorMessage: error instanceof Error ? error.message : String(error),
-      payloadSnapshot: { orderNumber: order.order_number },
+      error_message: error instanceof Error ? error.message : String(error),
     });
     throw error;
   }

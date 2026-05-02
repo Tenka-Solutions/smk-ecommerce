@@ -15,6 +15,44 @@ async function findEmailLog(orderId, templateKey) {
   return data;
 }
 
+async function reserveEmailLog({ orderId, quoteRequestId, templateKey, recipient, payloadSnapshot }) {
+  const supabase = requireSupabaseClient();
+  const { data, error } = await supabase
+    .from("email_logs")
+    .insert({
+      order_id: orderId || null,
+      quote_request_id: quoteRequestId || null,
+      template_key: templateKey,
+      recipient,
+      status: "sending",
+      payload_snapshot: payloadSnapshot || {},
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      return null;
+    }
+    throw error;
+  }
+
+  return data;
+}
+
+async function updateEmailLog(id, patch) {
+  const supabase = requireSupabaseClient();
+  const { data, error } = await supabase
+    .from("email_logs")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 async function createEmailLog({
   orderId,
   quoteRequestId,
@@ -49,4 +87,6 @@ async function createEmailLog({
 module.exports = {
   createEmailLog,
   findEmailLog,
+  reserveEmailLog,
+  updateEmailLog,
 };

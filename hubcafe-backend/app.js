@@ -6,6 +6,7 @@ const healthRoutes = require("./routes/health.routes");
 const ordersRoutes = require("./routes/orders.routes");
 const paymentsRoutes = require("./routes/payments.routes");
 const quotesRoutes = require("./routes/quotes.routes");
+const { warnMissingEnv } = require("./lib/env-check");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3002);
@@ -54,8 +55,16 @@ app.use((req, res) => {
 app.use((error, _req, res, _next) => {
   const message = error instanceof Error ? error.message : "Error interno";
   console.error("[hubcafe-backend:error]", message);
-  res.status(500).json({ ok: false, error: message });
+  res.status(500).json({
+    ok: false,
+    error:
+      process.env.NODE_ENV === "production"
+        ? "Error interno del servidor"
+        : message,
+  });
 });
+
+warnMissingEnv();
 
 app.listen(PORT, () => {
   console.log(`Hub Cafe backend escuchando en puerto ${PORT}`);
