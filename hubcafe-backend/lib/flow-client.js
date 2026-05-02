@@ -10,6 +10,16 @@ function getFlowBaseUrl() {
   return (process.env.FLOW_BASE_URL || DEFAULT_FLOW_BASE_URL).replace(/\/$/, "");
 }
 
+function buildFlowError(status, body) {
+  const text = String(body || "");
+  const error = new Error(`Flow respondio ${status}: ${text}`);
+  error.statusCode = 502;
+  error.publicMessage = /email|correo/i.test(text)
+    ? "El correo del cliente no fue aceptado por Flow. Revisa el email e intenta nuevamente."
+    : "No pudimos iniciar o validar el pago con Flow. Intenta nuevamente en unos minutos.";
+  return error;
+}
+
 function signFlowParams(params) {
   const payload = Object.keys(params)
     .sort()
@@ -57,13 +67,17 @@ async function requestFlow(endpoint, params, method = "POST") {
   const text = await response.text();
 
   if (!response.ok) {
-    throw new Error(`Flow respondio ${response.status}: ${text}`);
+    throw buildFlowError(response.status, text);
   }
 
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error(`Flow respondio un cuerpo invalido: ${text}`);
+    const error = new Error(`Flow respondio un cuerpo invalido: ${text}`);
+    error.statusCode = 502;
+    error.publicMessage =
+      "Flow respondio una confirmacion invalida. Intenta nuevamente en unos minutos.";
+    throw error;
   }
 }
 

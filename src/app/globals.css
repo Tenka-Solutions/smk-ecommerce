@@ -390,6 +390,12 @@ img {
   outline: none;
 }
 
+.form-input-compact {
+  border-radius: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+}
+
 .form-input:focus {
   border-color: var(--color-ring);
   box-shadow: 0 0 0 4px var(--ring);

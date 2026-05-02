@@ -52,10 +52,35 @@ npm run dev
 - `src/lib`: clientes externos, configuración y utilidades
 - `supabase`: migraciones y seed inicial
 
-## Backend real cPanel
+## Backend real Hub Cafe en cPanel
 
-El flujo real de produccion para Hub Cafe / SMK Vending esta en `server/cotizacion-server.js`. Es un backend Express CommonJS pensado para ejecutarse en cPanel bajo `public_html/server/cotizacion-server.js`.
+El flujo real de produccion de pedidos, pagos Flow, webhook, stock y correos de Hub Cafe vive en `hubcafe-backend/`.
 
-Para esta etapa, `src/app/api/**` y `src/modules/**` quedan como implementaciones anteriores/respaldo. El frontend publico `https://hubcafe.cl` debe llamar a la API real de `https://smkvending.cl`.
+Destino correcto en cPanel:
 
-Ver instrucciones completas en `server/README.md`.
+```txt
+public_html/hubcafe-backend/
+```
+
+No usar `public_html/server/` para Hub Cafe. Esa carpeta queda reservada para el backend viejo de SMK Vending y no debe modificarse como parte de este despliegue.
+
+El frontend publico `https://hubcafe.cl` debe usar:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://smkvending.cl/hubcafe-api
+```
+
+URLs Flow:
+
+- Confirmation URL: `https://smkvending.cl/hubcafe-api/payments/flow/webhook`
+- Return URL: `https://hubcafe.cl/pago-confirmado`
+
+Antes de pagos reales ejecutar la migracion:
+
+```txt
+supabase/migrations/20260502090000_hubcafe_backend_idempotency.sql
+```
+
+`src/app/api/payments/**` y el flujo de pagos dentro de Next quedan como legado/respaldo. El flujo operativo real para cPanel usa `hubcafe-backend/app.js`.
+
+Ver instrucciones completas en `hubcafe-backend/README.md`.

@@ -11,7 +11,13 @@ with duplicated_stock_events as (
   from public.order_events
   where event_type = 'stock_discounted'
 )
-delete from public.order_events event
+update public.order_events event
+set
+  event_type = 'stock_discounted_duplicate',
+  payload = coalesce(event.payload, '{}'::jsonb) || jsonb_build_object(
+    'duplicateOf', 'stock_discounted',
+    'migratedBy', '20260502090000_hubcafe_backend_idempotency'
+  )
 using duplicated_stock_events duplicate
 where event.id = duplicate.id
   and duplicate.row_number > 1;
@@ -60,6 +66,21 @@ declare
   v_warnings jsonb := '[]'::jsonb;
   v_result jsonb;
 begin
+  perform pg_advisory_xact_lock(hashtextextended(p_order_id::text, 0));
+
+  if exists (
+    select 1
+    from public.order_events
+    where order_id = p_order_id
+      and event_type = 'stock_discounted'
+  ) then
+    return jsonb_build_object(
+      'discounted', false,
+      'changes', jsonb_build_array(),
+      'warnings', jsonb_build_array('Stock ya descontado para este pedido.')
+    );
+  end if;
+
   insert into public.order_events (order_id, event_type, payload)
   values (
     p_order_id,
@@ -160,9 +181,6 @@ begin
   return v_result;
 exception
   when others then
-    if v_event_id is not null then
-      delete from public.order_events where id = v_event_id;
-    end if;
     raise;
 end;
 $$;

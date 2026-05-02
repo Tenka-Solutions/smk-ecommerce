@@ -26,12 +26,12 @@ function createTransporter() {
 }
 
 async function sendMail({ to, subject, text, html }) {
-  const transporter = createTransporter();
-
-  if (!transporter) {
-    console.log("[mail] SMTP no configurado; correo omitido", { to, subject });
+  if (!isSmtpConfigured()) {
+    console.warn("[mail] SMTP incompleto; correo omitido", { to, subject });
     return { skipped: true };
   }
+
+  const transporter = createTransporter();
 
   return transporter.sendMail({
     from: process.env.QUOTE_FROM_EMAIL || process.env.SMTP_USER,

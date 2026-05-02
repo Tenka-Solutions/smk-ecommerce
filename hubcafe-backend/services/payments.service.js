@@ -90,8 +90,21 @@ async function processFlowToken(token) {
   const detailedOrder = await ordersRepository.getOrderDetail(updatedOrder.id);
 
   if (paymentStatus === "paid") {
-    await discountStockFromSupabase(detailedOrder);
-    await sendPaidOrderEmail(detailedOrder);
+    try {
+      await discountStockFromSupabase(detailedOrder);
+    } catch (error) {
+      await ordersRepository.addOrderEvent(order.id, "stock_discount_failed", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    try {
+      await sendPaidOrderEmail(detailedOrder);
+    } catch (error) {
+      await ordersRepository.addOrderEvent(order.id, "paid_order_email_failed", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   return {

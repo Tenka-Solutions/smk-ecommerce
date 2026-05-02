@@ -27,7 +27,7 @@ export const env = {
   flowApiUrl:
     process.env.FLOW_BASE_URL ??
     process.env.FLOW_API_URL ??
-    "https://flow.cl/api",
+    "https://www.flow.cl/api",
   flowReturnUrl:
     process.env.FLOW_RETURN_URL ??
     "http://localhost:3000/api/payments/flow/return",

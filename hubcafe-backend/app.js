@@ -54,13 +54,17 @@ app.use((req, res) => {
 
 app.use((error, _req, res, _next) => {
   const message = error instanceof Error ? error.message : "Error interno";
+  const statusCode = Number(error.statusCode || error.status || 500);
+  const publicMessage =
+    error.publicMessage ||
+    (process.env.NODE_ENV === "production"
+      ? "Error interno del servidor"
+      : message);
+
   console.error("[hubcafe-backend:error]", message);
-  res.status(500).json({
+  res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
     ok: false,
-    error:
-      process.env.NODE_ENV === "production"
-        ? "Error interno del servidor"
-        : message,
+    error: publicMessage,
   });
 });
 

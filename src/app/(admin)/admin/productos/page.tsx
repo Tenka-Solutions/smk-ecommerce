@@ -278,7 +278,9 @@ export default async function AdminProductsPage({
             <p className="mt-4 max-w-3xl text-sm leading-8 text-[var(--color-muted-foreground)]">
               Fuente activa:{" "}
               <strong>
-                {pageData.source === "supabase" ? "Supabase" : "Seed local"}
+                {pageData.source === "supabase"
+                  ? "Supabase"
+                  : "Supabase no disponible"}
               </strong>
               . Desde aqui el cliente puede crear, editar y ocultar productos
               sin tocar codigo.

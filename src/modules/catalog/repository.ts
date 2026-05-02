@@ -5,10 +5,6 @@ import {
   CatalogFilters,
   CatalogProduct,
 } from "@/modules/catalog/types";
-import {
-  catalogSeedCategories,
-  catalogSeedProducts,
-} from "@/modules/catalog/seed";
 
 const publicCategorySlugAliases: Record<string, string> = {
   "cafe-grano": "cafe-en-grano",
@@ -291,7 +287,7 @@ const readCatalogFromSupabase = cache(async () => {
 
 export async function getCatalogCategories() {
   const remoteCatalog = await readCatalogFromSupabase();
-  const categories = remoteCatalog?.categories ?? catalogSeedCategories;
+  const categories = remoteCatalog?.categories ?? [];
 
   return categories.filter((category) =>
     shouldShowCategoryInPublicNavigation(category, categories)
@@ -300,9 +296,7 @@ export async function getCatalogCategories() {
 
 export async function getCatalogCategoryBySlug(slug: string) {
   const remoteCatalog = await readCatalogFromSupabase();
-  const categories = (remoteCatalog?.categories ?? catalogSeedCategories).filter(
-    isPublicCategory
-  );
+  const categories = (remoteCatalog?.categories ?? []).filter(isPublicCategory);
   const resolvedSlug = resolveCategorySlug(slug, categories);
 
   return (
@@ -314,8 +308,8 @@ export async function getCatalogCategoryBySlug(slug: string) {
 
 export async function getCatalogProducts(filters: CatalogFilters = {}) {
   const remoteCatalog = await readCatalogFromSupabase();
-  const categories = remoteCatalog?.categories ?? catalogSeedCategories;
-  const products = remoteCatalog?.products ?? catalogSeedProducts;
+  const categories = remoteCatalog?.categories ?? [];
+  const products = remoteCatalog?.products ?? [];
 
   return applyFilters(products, categories, filters);
 }
@@ -341,8 +335,8 @@ export async function getAdminCatalogSnapshot() {
   const remoteCatalog = await readCatalogFromSupabase();
 
   return {
-    source: remoteCatalog ? "supabase" : "seed",
-    categories: remoteCatalog?.categories ?? catalogSeedCategories,
-    products: remoteCatalog?.products ?? catalogSeedProducts,
+    source: remoteCatalog ? "supabase" : "unavailable",
+    categories: remoteCatalog?.categories ?? [],
+    products: remoteCatalog?.products ?? [],
   } as const;
 }
