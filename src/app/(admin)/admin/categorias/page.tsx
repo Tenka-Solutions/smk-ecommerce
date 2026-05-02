@@ -224,7 +224,9 @@ export default async function AdminCategoriesPage({
             <p className="mt-4 max-w-3xl text-sm leading-8 text-[var(--color-muted-foreground)]">
               Fuente activa:{" "}
               <strong>
-                {pageData.source === "supabase" ? "Supabase" : "Seed local"}
+                {pageData.source === "supabase"
+                  ? "Supabase"
+                  : "Supabase no disponible"}
               </strong>
               . Organiza categorias padre y subcategorias sin borrar datos
               existentes.

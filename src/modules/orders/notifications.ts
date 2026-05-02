@@ -1,6 +1,7 @@
+import nodemailer from "nodemailer";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getResendClient } from "@/lib/email/resend";
-import { env, isResendConfigured } from "@/lib/env";
+import { env, isResendConfigured, isSmtpConfigured } from "@/lib/env";
 import { formatClp } from "@/lib/format/currency";
 import { OrderDetail } from "@/modules/orders/service";
 import { QuoteRequestInput } from "@/modules/quotes/schema";
@@ -55,6 +56,49 @@ async function deliverEmail({
   quoteRequestId?: string | null;
   payloadSnapshot?: Record<string, unknown>;
 }) {
+  if (isSmtpConfigured()) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: env.smtpHost,
+        port: env.smtpPort,
+        secure: env.smtpSecure,
+        auth: {
+          user: env.smtpUser,
+          pass: env.smtpPass,
+        },
+      });
+
+      const response = await transporter.sendMail({
+        from: env.quoteFromEmail,
+        to,
+        subject,
+        html,
+      });
+
+      await recordEmailLog({
+        templateKey,
+        recipient: to,
+        status: "sent",
+        orderId,
+        quoteRequestId,
+        providerMessageId: response.messageId,
+        payloadSnapshot,
+      });
+    } catch (error) {
+      await recordEmailLog({
+        templateKey,
+        recipient: to,
+        status: "failed",
+        orderId,
+        quoteRequestId,
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        payloadSnapshot,
+      });
+    }
+
+    return;
+  }
+
   if (!isResendConfigured()) {
     await recordEmailLog({
       templateKey,
@@ -201,7 +245,7 @@ export async function sendOrderPaidEmails({
       payloadSnapshot,
     }),
     deliverEmail({
-      to: "ventas@smkvending.cl",
+      to: env.quoteToEmail,
       subject: `Nuevo pedido pagado ${order.orderNumber}`,
       html: buildOrderEmailHtml({
         title: `Pedido pagado ${order.orderNumber}`,
@@ -242,7 +286,7 @@ export async function sendQuoteNotificationEmail({
   `;
 
   await deliverEmail({
-    to: "ventas@smkvending.cl",
+    to: env.quoteToEmail,
     subject: `Nueva cotizacion desde web - ${input.name}`,
     html,
     templateKey: "quote-internal-created",

@@ -24,13 +24,29 @@ export const env = {
     "http://localhost:3000/api/payments/getnet/webhook",
   flowApiKey: process.env.FLOW_API_KEY ?? "",
   flowSecretKey: process.env.FLOW_SECRET_KEY ?? "",
-  flowApiUrl: process.env.FLOW_API_URL ?? "https://flow.cl/api",
+  flowApiUrl:
+    process.env.FLOW_BASE_URL ??
+    process.env.FLOW_API_URL ??
+    "https://www.flow.cl/api",
   flowReturnUrl:
     process.env.FLOW_RETURN_URL ??
     "http://localhost:3000/api/payments/flow/return",
   flowConfirmUrl:
+    process.env.FLOW_CONFIRMATION_URL ??
     process.env.FLOW_CONFIRM_URL ??
-    "http://localhost:3000/api/payments/flow/confirm",
+    "http://localhost:3000/api/payments/flow/webhook",
+  adminPanelUrl:
+    process.env.ADMIN_PANEL_URL ?? "http://localhost:3000/admin/pedidos",
+  quoteToEmail: process.env.QUOTE_TO_EMAIL ?? "soporte@smkvending.cl",
+  quoteFromEmail:
+    process.env.QUOTE_FROM_EMAIL ??
+    process.env.RESEND_FROM ??
+    "no-reply@smkvending.cl",
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpSecure: asBoolean(process.env.SMTP_SECURE),
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? "",
   emailMode: process.env.EMAIL_MODE ?? "log",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   resendFrom: process.env.RESEND_FROM ?? "no-reply@smkvending.cl",
@@ -53,6 +69,13 @@ export function isSupabaseAdminConfigured() {
 
 export function isResendConfigured() {
   return env.emailMode === "resend" && Boolean(env.resendApiKey);
+}
+
+export function isSmtpConfigured() {
+  return (
+    env.emailMode === "smtp" &&
+    Boolean(env.smtpHost && env.smtpUser && env.smtpPass)
+  );
 }
 
 export function isGetnetConfigured() {

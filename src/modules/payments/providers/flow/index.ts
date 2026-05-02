@@ -7,7 +7,7 @@ import type {
 } from "@/modules/payments/providers/types";
 
 // ✅ Accept number + string
-function signParams(
+export function signParams(
   params: Record<string, string | number>,
   secret: string
 ): string {
@@ -45,7 +45,7 @@ export const flowPaymentProvider: PaymentProviderGateway = {
       apiKey: env.flowApiKey,
 
       // ⚠️ MUST be unique
-      commerceOrder: `${input.orderNumber}_${Date.now()}`,
+      commerceOrder: input.orderNumber,
 
       subject: `Pago pedido ${input.orderNumber}`,
       currency: "CLP",
@@ -53,8 +53,8 @@ export const flowPaymentProvider: PaymentProviderGateway = {
       // ✅ MUST be number for signature
       amount: Math.round(input.amount),
 
-      // ⚠️ ALWAYS valid email
-      email: input.customerEmail ?? "test@hubcafe.cl",
+      // Flow requires a syntactically valid customer email.
+      email: input.customerEmail ?? "pagos@hubcafe.cl",
 
       // ⚠️ MUST be PUBLIC URLs (accessible by Flow)
       urlConfirmation: env.flowConfirmUrl,
@@ -65,6 +65,8 @@ export const flowPaymentProvider: PaymentProviderGateway = {
     if (input.paymentId) {
       params.optional = JSON.stringify({
         paymentId: input.paymentId,
+        orderId: input.orderId,
+        orderNumber: input.orderNumber,
       });
     }
 

@@ -11,12 +11,7 @@ import {
 } from "@/modules/catalog/admin-schema";
 import { getAuthenticatedUserRoles } from "@/modules/auth/server";
 import { getAdminProductVisibilityInfo } from "@/modules/catalog/admin-visibility";
-import { getAdminCatalogSnapshot } from "@/modules/catalog/repository";
-import {
-  CatalogCategory,
-  CatalogProduct,
-  PublicationStatus,
-} from "@/modules/catalog/types";
+import { PublicationStatus } from "@/modules/catalog/types";
 
 const MUTATION_ROLES = ["super_admin", "catalog_editor"];
 const READ_ROLES = [...MUTATION_ROLES, "sales_manager"];
@@ -87,7 +82,7 @@ export interface AdminCatalogProduct {
 }
 
 export interface AdminCatalogPageData {
-  source: "supabase" | "seed";
+  source: "supabase" | "unavailable";
   categories: AdminCatalogCategory[];
   products: AdminCatalogProduct[];
   totalProducts: number;
@@ -96,7 +91,7 @@ export interface AdminCatalogPageData {
 }
 
 export interface AdminCategoriesPageData {
-  source: "supabase" | "seed";
+  source: "supabase" | "unavailable";
   categories: AdminCatalogCategory[];
   totalCategories: number;
   totalProducts: number;
@@ -193,25 +188,6 @@ function mapCategory(row: Record<string, unknown>): AdminCatalogCategory {
   };
 }
 
-function mapSeedCategory(category: CatalogCategory): AdminCatalogCategory {
-  return {
-    id: category.id,
-    parentId: category.parentId ?? null,
-    parentName: null,
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    imageUrl: category.imageUrl ?? null,
-    sortOrder: category.sortOrder,
-    isActive: category.isActive ?? category.isVisible,
-    isVisible: category.isVisible,
-    productCount: 0,
-    descendantProductCount: 0,
-    createdAt: null,
-    updatedAt: null,
-  };
-}
-
 function mapProduct(
   row: Record<string, unknown>,
   categories: AdminCatalogCategory[]
@@ -264,57 +240,6 @@ function mapProduct(
         : Number(row.stock_quantity),
     createdAt: typeof row.created_at === "string" ? row.created_at : null,
     updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
-  } satisfies Omit<AdminCatalogProduct, "publicVisibility">;
-
-  return {
-    ...mappedProduct,
-    publicVisibility: getAdminProductVisibilityInfo(mappedProduct),
-  };
-}
-
-function mapSeedProduct(
-  product: CatalogProduct,
-  categories: AdminCatalogCategory[]
-): AdminCatalogProduct {
-  const category = categories.find((entry) => entry.slug === product.categorySlug);
-  const parentCategory = category?.parentId
-    ? categories.find((entry) => entry.id === category.parentId)
-    : null;
-  const grossPrice = product.grossPriceClp ?? product.priceClpTaxInc;
-  const netPrice = product.netPriceClp ?? Math.round(grossPrice / 1.19);
-
-  const mappedProduct = {
-    id: product.id,
-    categoryId: category?.id ?? product.categoryId ?? "",
-    categorySlug: product.categorySlug,
-    categoryName: category?.name ?? product.categorySlug,
-    categoryExists: Boolean(category),
-    categoryParentId: category?.parentId ?? null,
-    categoryParentName: parentCategory?.name ?? null,
-    categoryIsActive: category?.isActive ?? true,
-    categoryIsVisible: category?.isVisible ?? true,
-    name: product.name,
-    slug: product.slug,
-    sku: product.sku,
-    ean: product.ean ?? null,
-    shortDescription: product.shortDescription,
-    longDescription: product.longDescription,
-    netPriceClp: netPrice,
-    grossPriceClp: grossPrice,
-    priceClpTaxInc: product.priceClpTaxInc,
-    primaryImagePath: product.image,
-    galleryImages: product.gallery.filter((image) => image !== product.image),
-    availabilityStatus: toAdminStatus(product.availabilityStatus),
-    publicationStatus: product.publicationStatus,
-    isFeatured: product.isFeatured,
-    sortOrder: product.sortOrder,
-    seoTitle: product.seoTitle,
-    seoDescription: product.seoDescription,
-    highlights: product.highlights,
-    brand: product.brand ?? null,
-    stockQuantity: product.stockQuantity ?? null,
-    createdAt: null,
-    updatedAt: null,
   } satisfies Omit<AdminCatalogProduct, "publicVisibility">;
 
   return {
@@ -430,23 +355,16 @@ function applyFilters(
   });
 }
 
-async function getFallbackCatalogPageData(
+function getUnavailableCatalogPageData(
   filters: AdminProductFilters,
   canMutate: boolean,
   warning: string
-): Promise<AdminCatalogPageData> {
-  const snapshot = await getAdminCatalogSnapshot();
-  const categories = snapshot.categories.map(mapSeedCategory);
-  const products = snapshot.products.map((product) =>
-    mapSeedProduct(product, categories)
-  );
-  const categoriesWithMetadata = attachCategoryMetadata(categories, products);
-
+): AdminCatalogPageData {
   return {
-    source: "seed",
-    categories: categoriesWithMetadata,
-    products: applyFilters(products, filters),
-    totalProducts: products.length,
+    source: "unavailable",
+    categories: [],
+    products: applyFilters([], filters),
+    totalProducts: 0,
     canMutate,
     warning,
   };
@@ -459,10 +377,10 @@ export async function getAdminProductsPageData(
   const client = createSupabaseAdminClient();
 
   if (!client) {
-    return getFallbackCatalogPageData(
+    return getUnavailableCatalogPageData(
       filters,
       canMutate,
-      "Supabase admin no esta configurado; se muestra el seed local en modo lectura."
+      "Supabase admin no esta configurado. No se muestran productos locales para evitar datos no administrables."
     );
   }
 
@@ -478,12 +396,12 @@ export async function getAdminProductsPageData(
   ]);
 
   if (categoriesResponse.error || productsResponse.error) {
-    return getFallbackCatalogPageData(
+    return getUnavailableCatalogPageData(
       filters,
       canMutate,
       categoriesResponse.error?.message ??
         productsResponse.error?.message ??
-        "No fue posible leer Supabase; se muestra el seed local."
+        "No fue posible leer Supabase."
     );
   }
 
@@ -509,20 +427,14 @@ export async function getAdminCategoriesPageData(): Promise<AdminCategoriesPageD
   const client = createSupabaseAdminClient();
 
   if (!client) {
-    const snapshot = await getAdminCatalogSnapshot();
-    const categories = snapshot.categories.map(mapSeedCategory);
-    const products = snapshot.products.map((product) =>
-      mapSeedProduct(product, categories)
-    );
-
     return {
-      source: "seed",
-      categories: attachCategoryMetadata(categories, products),
-      totalCategories: categories.length,
-      totalProducts: products.length,
+      source: "unavailable",
+      categories: [],
+      totalCategories: 0,
+      totalProducts: 0,
       canMutate,
       warning:
-        "Supabase admin no esta configurado; se muestra el seed local en modo lectura.",
+        "Supabase admin no esta configurado. No se muestran categorias locales para evitar datos no administrables.",
     };
   }
 
@@ -535,22 +447,16 @@ export async function getAdminCategoriesPageData(): Promise<AdminCategoriesPageD
   ]);
 
   if (categoriesResponse.error || productsResponse.error) {
-    const snapshot = await getAdminCatalogSnapshot();
-    const categories = snapshot.categories.map(mapSeedCategory);
-    const products = snapshot.products.map((product) =>
-      mapSeedProduct(product, categories)
-    );
-
     return {
-      source: "seed",
-      categories: attachCategoryMetadata(categories, products),
-      totalCategories: categories.length,
-      totalProducts: products.length,
+      source: "unavailable",
+      categories: [],
+      totalCategories: 0,
+      totalProducts: 0,
       canMutate,
       warning:
         categoriesResponse.error?.message ??
         productsResponse.error?.message ??
-        "No fue posible leer Supabase; se muestra el seed local.",
+        "No fue posible leer Supabase.",
     };
   }
 

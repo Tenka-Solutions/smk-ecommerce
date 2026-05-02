@@ -4,6 +4,10 @@ import { EmptyState } from "@/components/feedback/EmptyState";
 import { StatusBadge } from "@/components/feedback/StatusBadge";
 import { formatClp } from "@/lib/format/currency";
 import {
+  formatPaymentProvider,
+  isLegacyPaymentProvider,
+} from "@/modules/orders/payment-provider";
+import {
   ADMIN_ORDER_DELETE_CONFIRMATION,
   ADMIN_ORDER_STATUSES,
   getAdminOrderDeletionEligibility,
@@ -17,6 +21,7 @@ import type {
   AdminOrderListItem,
   AdminOrderStatus,
 } from "@/modules/orders/admin";
+import type { PaymentStatus } from "@/modules/orders/service";
 import {
   archiveOrderAction,
   deleteOrderPermanentlyAction,
@@ -27,6 +32,7 @@ import {
 type SearchParams = Promise<{
   q?: string;
   estadoPedido?: string;
+  estadoPago?: string;
   fechaDesde?: string;
   fechaHasta?: string;
   archivado?: string;
@@ -90,6 +96,13 @@ const orderStatusLabels: Record<AdminOrderStatus, string> = {
   rejected: "Rechazado",
 };
 
+const paymentStatusLabels: Record<PaymentStatus, string> = {
+  pending: "Pendiente de pago",
+  paid: "Pagado",
+  rejected: "Rechazado",
+  cancelled: "Anulado",
+};
+
 function toOrderStatus(value?: string): AdminOrderStatus | undefined {
   return ADMIN_ORDER_STATUSES.includes(value as AdminOrderStatus)
     ? (value as AdminOrderStatus)
@@ -100,6 +113,12 @@ function toArchivedFilter(value?: string): AdminArchivedFilter {
   return ["active", "archived", "all"].includes(value ?? "")
     ? (value as AdminArchivedFilter)
     : "active";
+}
+
+function toPaymentStatus(value?: string): PaymentStatus | undefined {
+  return ["pending", "paid", "rejected", "cancelled"].includes(value ?? "")
+    ? (value as PaymentStatus)
+    : undefined;
 }
 
 function buildOrdersHref(params: Record<string, string | undefined>) {
@@ -179,11 +198,11 @@ function SummaryCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-[1.25rem] bg-[var(--color-surface-strong)] p-4">
+    <div className="rounded-[0.85rem] bg-[var(--color-surface-strong)] px-3 py-2.5">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      <p className="mt-1 text-xl font-semibold">{value}</p>
     </div>
   );
 }
@@ -194,7 +213,7 @@ function ContactActions({ order }: { order: AdminOrderListItem }) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      <a href={getMailHref(order)} className="button-secondary px-4 py-2 text-xs">
+      <a href={getMailHref(order)} className="button-secondary px-3 py-1.5 text-xs">
         Enviar correo
       </a>
       {whatsappHref ? (
@@ -202,13 +221,13 @@ function ContactActions({ order }: { order: AdminOrderListItem }) {
           href={whatsappHref}
           target="_blank"
           rel="noreferrer"
-          className="button-secondary px-4 py-2 text-xs"
+          className="button-secondary px-3 py-1.5 text-xs"
         >
-          WhatsApp
+          Contactar WhatsApp
         </a>
       ) : null}
       {phoneHref ? (
-        <a href={phoneHref} className="button-secondary px-4 py-2 text-xs">
+        <a href={phoneHref} className="button-secondary px-3 py-1.5 text-xs">
           Llamar
         </a>
       ) : null}
@@ -220,14 +239,18 @@ function OrderCard({
   order,
   detailHref,
   isSelected,
+  canMutate,
+  returnTo,
 }: {
   order: AdminOrderListItem;
   detailHref: string;
   isSelected: boolean;
+  canMutate: boolean;
+  returnTo: string;
 }) {
   return (
     <article
-      className={`grid gap-4 rounded-[1.75rem] border p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center ${
+      className={`grid gap-3 rounded-[1rem] border p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center ${
         isSelected
           ? "border-[color-mix(in_srgb,var(--color-primary)_45%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-primary)_8%,var(--color-card)_92%)]"
           : "border-[var(--color-border)] bg-[var(--color-card)]"
@@ -235,14 +258,14 @@ function OrderCard({
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-semibold text-[var(--color-ink)]">
+          <h3 className="text-base font-semibold text-[var(--color-ink)]">
             {order.orderNumber}
           </h3>
           <StatusBadge status={order.orderStatus} />
           <StatusBadge status={order.paymentStatus} />
           {order.archivedAt ? <StatusBadge status="archived" /> : null}
         </div>
-        <p className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
+        <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
           {order.customerName}
         </p>
         <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
@@ -254,19 +277,45 @@ function OrderCard({
         </p>
       </div>
 
-      <div className="grid gap-3 md:min-w-44 md:justify-items-end">
+      <div className="grid gap-2 md:min-w-40 md:justify-items-end">
         <div className="text-left md:text-right">
-          <p className="text-lg font-semibold text-[var(--color-price)]">
+          <p className="text-base font-semibold text-[var(--color-price)]">
             {formatClp(order.totalTaxInc)}
           </p>
           <p className="text-xs text-[var(--color-muted-foreground)]">
-            Pago {order.paymentProvider ?? "por confirmar"}
+            Método de pago: {formatPaymentProvider(order.paymentProvider)}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2 md:justify-end">
           <ContactActions order={order} />
-          <Link href={detailHref} className="button-primary px-4 py-2 text-xs">
+          <form action={updateOrderAction}>
+            <input type="hidden" name="orderId" value={order.id} />
+            <input type="hidden" name="orderStatus" value="preparing" />
+            <input type="hidden" name="internalNote" value={order.internalNote ?? ""} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button
+              type="submit"
+              disabled={!canMutate || order.orderStatus === "preparing"}
+              className="button-secondary px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Marcar en preparacion
+            </button>
+          </form>
+          <form action={updateOrderAction}>
+            <input type="hidden" name="orderId" value={order.id} />
+            <input type="hidden" name="orderStatus" value="delivered" />
+            <input type="hidden" name="internalNote" value={order.internalNote ?? ""} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <button
+              type="submit"
+              disabled={!canMutate || order.orderStatus === "delivered"}
+              className="button-secondary px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Marcar despachado
+            </button>
+          </form>
+          <Link href={detailHref} className="button-primary px-3 py-1.5 text-xs">
             Ver detalle
           </Link>
         </div>
@@ -283,11 +332,11 @@ function DetailLine({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[1.25rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-4">
+    <div className="rounded-[0.85rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)] px-3 py-2.5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-muted-foreground)]">
         {label}
       </p>
-      <div className="mt-2 text-sm font-semibold text-[var(--color-ink)]">
+      <div className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
         {value || "-"}
       </div>
     </div>
@@ -310,16 +359,17 @@ function OrderDetailPanel({
     paymentAttemptStatus: order.paymentAttemptStatus,
     hasConfirmedPaymentAttempt: order.hasConfirmedPaymentAttempt,
   });
-  const paymentMethod =
-    order.paymentProvider ?? order.paymentAttemptProvider ?? "Por confirmar";
+  const paymentMethod = formatPaymentProvider(
+    order.paymentProvider ?? order.paymentAttemptProvider
+  );
 
   return (
-    <section className="panel-card rounded-[2rem] p-6 sm:p-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <section className="panel-card flex h-full min-h-0 flex-col overflow-hidden rounded-[1.25rem]">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-[var(--color-border)] px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="section-kicker">Detalle del pedido</p>
-          <h2 className="mt-3 text-3xl font-semibold">{order.orderNumber}</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <h2 className="mt-1 text-xl font-semibold">{order.orderNumber}</h2>
+          <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge status={order.orderStatus} />
             <StatusBadge status={order.paymentStatus} />
             {order.archivedAt ? <StatusBadge status="archived" /> : null}
@@ -328,37 +378,44 @@ function OrderDetailPanel({
 
         <div className="flex flex-wrap gap-2 lg:justify-end">
           <ContactActions order={order} />
-          <Link href="/admin/pedidos" className="button-secondary px-4 py-2 text-xs">
+          <Link href="/admin/pedidos" className="button-secondary px-3 py-1.5 text-xs">
             Cerrar detalle
           </Link>
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <DetailLine label="Fecha" value={formatDateTime(order.createdAt)} />
-        <DetailLine label="Metodo de pago" value={paymentMethod} />
-        <DetailLine label="Referencia pago" value={order.paymentAttemptReference} />
-        <DetailLine label="Total" value={formatClp(order.totalTaxInc)} />
-      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <DetailLine label="Fecha" value={formatDateTime(order.createdAt)} />
+          <DetailLine label="Método de pago" value={paymentMethod} />
+          <DetailLine label="Referencia pago" value={order.paymentAttemptReference} />
+          <DetailLine label="Total" value={formatClp(order.totalTaxInc)} />
+        </div>
 
-      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="grid gap-6">
-          <section className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-card)] p-5">
-            <h3 className="text-xl font-semibold">Productos comprados</h3>
-            <div className="mt-4 overflow-x-auto">
+        {isLegacyPaymentProvider(order.paymentProvider) ? (
+          <p className="mt-3 rounded-[0.85rem] border border-[var(--color-border)] bg-[var(--color-surface-strong)] px-3 py-2 text-xs leading-5 text-[var(--color-muted-foreground)]">
+            Pedido registrado con flujo anterior. Se conserva para trazabilidad.
+          </p>
+        ) : null}
+
+        <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="grid gap-3">
+            <section className="rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3">
+              <h3 className="text-base font-semibold">Productos comprados</h3>
+              <div className="mt-2 overflow-x-auto">
               <table className="min-w-full divide-y divide-[var(--color-border)] text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-[0.14em] text-[var(--color-muted-foreground)]">
-                    <th className="py-3 pr-4 font-semibold">Producto</th>
-                    <th className="py-3 pr-4 font-semibold">Cant.</th>
-                    <th className="py-3 pr-4 font-semibold">Unitario</th>
-                    <th className="py-3 font-semibold">Total</th>
+                    <th className="py-2 pr-3 font-semibold">Producto</th>
+                    <th className="py-2 pr-3 font-semibold">Cant.</th>
+                    <th className="py-2 pr-3 font-semibold">Unitario</th>
+                    <th className="py-2 font-semibold">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {order.items.map((item) => (
                     <tr key={`${item.productId ?? item.name}-${item.sku ?? ""}`}>
-                      <td className="py-3 pr-4">
+                      <td className="py-2 pr-3">
                         <p className="font-semibold text-[var(--color-ink)]">
                           {item.name}
                         </p>
@@ -366,11 +423,11 @@ function OrderDetailPanel({
                           SKU {item.sku ?? "sin SKU"}
                         </p>
                       </td>
-                      <td className="py-3 pr-4">{item.quantity}</td>
-                      <td className="py-3 pr-4">
+                      <td className="py-2 pr-3">{item.quantity}</td>
+                      <td className="py-2 pr-3">
                         {formatClp(item.unitPriceTaxInc)}
                       </td>
-                      <td className="py-3 font-semibold">
+                      <td className="py-2 font-semibold">
                         {formatClp(item.lineTotalTaxInc)}
                       </td>
                     </tr>
@@ -380,9 +437,9 @@ function OrderDetailPanel({
             </div>
           </section>
 
-          <section className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-card)] p-5">
-            <h3 className="text-xl font-semibold">Datos del cliente</h3>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <section className="rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3">
+              <h3 className="text-base font-semibold">Datos del cliente</h3>
+              <div className="mt-2 grid gap-2 md:grid-cols-2">
               <DetailLine label="Nombre" value={order.customerName} />
               <DetailLine label="Correo" value={order.customerEmail} />
               <DetailLine label="Telefono" value={order.phone ?? "No registrado"} />
@@ -416,10 +473,10 @@ function OrderDetailPanel({
           </section>
         </div>
 
-        <aside className="grid content-start gap-5">
-          <section className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-card)] p-5">
-            <h3 className="text-xl font-semibold">Estado y nota interna</h3>
-            <form action={updateOrderAction} className="mt-4 grid gap-4">
+          <aside className="grid content-start gap-3">
+            <section className="rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3">
+              <h3 className="text-base font-semibold">Estado y nota interna</h3>
+              <form action={updateOrderAction} className="mt-3 grid gap-3">
               <input type="hidden" name="orderId" value={order.id} />
               <input type="hidden" name="returnTo" value={returnTo} />
 
@@ -428,7 +485,7 @@ function OrderDetailPanel({
                 <select
                   name="orderStatus"
                   defaultValue={order.orderStatus}
-                  className="form-input"
+                  className="form-input form-input-compact"
                   disabled={!canMutate}
                 >
                   {ADMIN_ORDER_STATUSES.map((status) => (
@@ -444,7 +501,7 @@ function OrderDetailPanel({
                 <textarea
                   name="internalNote"
                   defaultValue={order.internalNote ?? ""}
-                  className="form-input min-h-32"
+                  className="form-input form-input-compact min-h-24"
                   placeholder="Nota visible solo en administracion."
                   disabled={!canMutate}
                 />
@@ -452,7 +509,7 @@ function OrderDetailPanel({
 
               <OrderSubmitButton
                 disabled={!canMutate}
-                className="button-primary px-5 py-3 text-sm"
+                className="button-primary px-4 py-2 text-sm"
                 confirmWhenField="orderStatus"
                 confirmWhenValue="cancelled"
                 confirmMessage="Vas a marcar este pedido como cancelado. ¿Quieres continuar?"
@@ -462,9 +519,9 @@ function OrderDetailPanel({
             </form>
           </section>
 
-          <section className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-card)] p-5">
-            <h3 className="text-xl font-semibold">Totales</h3>
-            <div className="mt-4 grid gap-3 text-sm">
+            <section className="rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3">
+              <h3 className="text-base font-semibold">Totales</h3>
+              <div className="mt-3 grid gap-2 text-sm">
               <div className="flex justify-between gap-4">
                 <span className="text-[var(--color-muted-foreground)]">Subtotal</span>
                 <strong>{formatClp(order.subtotalTaxInc)}</strong>
@@ -490,9 +547,9 @@ function OrderDetailPanel({
             </div>
           </section>
 
-          <section className="rounded-[1.5rem] border border-[var(--color-border)] bg-[var(--color-card)] p-5">
-            <h3 className="text-xl font-semibold">Archivado visual</h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-muted-foreground)]">
+            <section className="rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3">
+              <h3 className="text-base font-semibold">Archivado visual</h3>
+              <p className="mt-2 text-xs leading-5 text-[var(--color-muted-foreground)]">
               Archivar limpia el panel sin borrar el pedido ni sus productos.
             </p>
 
@@ -502,7 +559,7 @@ function OrderDetailPanel({
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <OrderSubmitButton
                   disabled={!canMutate}
-                  className="button-secondary px-5 py-3 text-sm"
+                  className="button-secondary px-4 py-2 text-sm"
                   confirmMessage="Este pedido volvera al listado principal. ¿Quieres desarchivarlo?"
                 >
                   Desarchivar pedido
@@ -514,7 +571,7 @@ function OrderDetailPanel({
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <OrderSubmitButton
                   disabled={!canMutate || !canArchive}
-                  className="button-secondary px-5 py-3 text-sm"
+                  className="button-secondary px-4 py-2 text-sm"
                   confirmMessage="El pedido se ocultara del listado principal, pero no se borrara. ¿Quieres archivarlo?"
                 >
                   Archivar pedido
@@ -528,13 +585,13 @@ function OrderDetailPanel({
             )}
           </section>
 
-          <section className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-danger)_38%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_8%,var(--color-card)_92%)] p-5">
-            <h3 className="text-xl font-semibold">Zona peligrosa</h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-muted-foreground)]">
+            <section className="rounded-[1rem] border border-[color-mix(in_srgb,var(--color-danger)_38%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_8%,var(--color-card)_92%)] p-3">
+              <h3 className="text-base font-semibold">Zona peligrosa</h3>
+              <p className="mt-2 text-xs leading-5 text-[var(--color-muted-foreground)]">
               La accion recomendada es archivar. La eliminacion definitiva
               borra el pedido y sus registros operativos asociados.
             </p>
-            <p className="mt-3 rounded-[1rem] border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-xs leading-5 text-[var(--color-card-foreground)]">
+              <p className="mt-2 rounded-[0.85rem] border border-[var(--color-border)] bg-[var(--color-card)] p-2 text-xs leading-5 text-[var(--color-card-foreground)]">
               {deleteEligibility.message}
             </p>
 
@@ -547,7 +604,7 @@ function OrderDetailPanel({
                   Escribe {ADMIN_ORDER_DELETE_CONFIRMATION} para confirmar
                   <input
                     name="confirmation"
-                    className="form-input"
+                    className="form-input form-input-compact"
                     placeholder={ADMIN_ORDER_DELETE_CONFIRMATION}
                     autoComplete="off"
                     disabled={!canMutate}
@@ -557,7 +614,7 @@ function OrderDetailPanel({
 
                 <OrderSubmitButton
                   disabled={!canMutate}
-                  className="button-secondary border-[color-mix(in_srgb,var(--color-danger)_54%,var(--color-border))] px-5 py-3 text-sm text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)]"
+                  className="button-secondary border-[color-mix(in_srgb,var(--color-danger)_54%,var(--color-border))] px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_12%,var(--color-card)_88%)]"
                   confirmMessage="Esta accion eliminara definitivamente el pedido y no se puede deshacer. Quieres continuar?"
                 >
                   Eliminar definitivamente
@@ -568,14 +625,15 @@ function OrderDetailPanel({
                 <button
                   type="button"
                   disabled
-                  className="button-secondary w-full cursor-not-allowed border-[color-mix(in_srgb,var(--color-danger)_32%,var(--color-border))] px-5 py-3 text-sm opacity-60"
+                  className="button-secondary w-full cursor-not-allowed border-[color-mix(in_srgb,var(--color-danger)_32%,var(--color-border))] px-4 py-2 text-sm opacity-60"
                 >
                   Eliminar definitivamente
                 </button>
               </div>
             )}
           </section>
-        </aside>
+          </aside>
+        </div>
       </div>
     </section>
   );
@@ -591,6 +649,7 @@ export default async function AdminOrdersPage({
   const filters = {
     query: params.q,
     orderStatus: toOrderStatus(params.estadoPedido),
+    paymentStatus: toPaymentStatus(params.estadoPago),
     dateFrom: params.fechaDesde,
     dateTo: params.fechaHasta,
     archived: archivedFilter,
@@ -603,6 +662,7 @@ export default async function AdminOrdersPage({
   const baseParams = {
     q: params.q,
     estadoPedido: params.estadoPedido,
+    estadoPago: params.estadoPago,
     fechaDesde: params.fechaDesde,
     fechaHasta: params.fechaHasta,
     archivado: params.archivado,
@@ -613,20 +673,20 @@ export default async function AdminOrdersPage({
   });
 
   return (
-    <div className="grid gap-6">
-      <section className="panel-card rounded-[2rem] p-6 sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <section className="panel-card rounded-[1.25rem] p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="section-kicker">Operacion</p>
-            <h1 className="mt-3 text-4xl font-semibold">Pedidos</h1>
-            <p className="mt-4 max-w-3xl text-sm leading-8 text-[var(--color-muted-foreground)]">
+            <h1 className="mt-1 text-2xl font-semibold">Pedidos</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--color-muted-foreground)]">
               Seguimiento comercial de pedidos, contacto con clientes, notas
               internas y archivado visual sin borrar registros.
             </p>
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-4">
+        <div className="mt-3 grid gap-2 sm:grid-cols-4">
           <SummaryCard label="Cargados" value={pageData.totalOrders} />
           <SummaryCard label="Vista actual" value={pageData.orders.length} />
           <SummaryCard label="Activos" value={pageData.visibleOrders} />
@@ -636,7 +696,7 @@ export default async function AdminOrdersPage({
 
       {message ? (
         <div
-          className={`rounded-[1.5rem] border p-4 text-sm font-medium ${
+          className={`rounded-[1rem] border px-4 py-3 text-sm font-medium ${
             message.tone === "success"
               ? "border-[color-mix(in_srgb,var(--color-success)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-success)_16%,var(--color-card)_84%)] text-[var(--color-card-foreground)]"
               : "border-[color-mix(in_srgb,var(--color-danger)_40%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-danger)_16%,var(--color-card)_84%)] text-[var(--color-card-foreground)]"
@@ -647,29 +707,29 @@ export default async function AdminOrdersPage({
       ) : null}
 
       {pageData.warning ? (
-        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] p-4 text-sm leading-7 text-[var(--color-card-foreground)]">
+        <div className="rounded-[1rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] px-4 py-3 text-sm leading-6 text-[var(--color-card-foreground)]">
           {pageData.warning}
         </div>
       ) : null}
 
-      <section className="panel-card rounded-[2rem] p-5 sm:p-6">
-        <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_190px_170px_170px_180px_auto_auto] xl:items-end">
+      <section className="panel-card rounded-[1.25rem] p-3">
+        <form className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_160px_150px_150px_165px_auto_auto] xl:items-end">
           <label className="grid gap-2 text-sm font-semibold">
             Buscar pedido o cliente
             <input
               name="q"
               defaultValue={params.q ?? ""}
-              className="form-input"
+              className="form-input form-input-compact"
               placeholder="SMK-..., nombre, correo o telefono"
             />
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
-            Estado
+            Estado gestion
             <select
               name="estadoPedido"
               defaultValue={params.estadoPedido ?? ""}
-              className="form-input"
+              className="form-input form-input-compact"
             >
               <option value="">Todos</option>
               {ADMIN_ORDER_STATUSES.map((status) => (
@@ -681,12 +741,28 @@ export default async function AdminOrdersPage({
           </label>
 
           <label className="grid gap-2 text-sm font-semibold">
+            Estado pago
+            <select
+              name="estadoPago"
+              defaultValue={params.estadoPago ?? ""}
+              className="form-input form-input-compact"
+            >
+              <option value="">Todos</option>
+              {Object.entries(paymentStatusLabels).map(([status, label]) => (
+                <option key={status} value={status}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold">
             Desde
             <input
               name="fechaDesde"
               type="date"
               defaultValue={params.fechaDesde ?? ""}
-              className="form-input"
+              className="form-input form-input-compact"
             />
           </label>
 
@@ -696,7 +772,7 @@ export default async function AdminOrdersPage({
               name="fechaHasta"
               type="date"
               defaultValue={params.fechaHasta ?? ""}
-              className="form-input"
+              className="form-input form-input-compact"
             />
           </label>
 
@@ -705,7 +781,7 @@ export default async function AdminOrdersPage({
             <select
               name="archivado"
               defaultValue={archivedFilter}
-              className="form-input"
+              className="form-input form-input-compact"
             >
               <option value="active">No archivados</option>
               <option value="archived">Archivados</option>
@@ -713,48 +789,64 @@ export default async function AdminOrdersPage({
             </select>
           </label>
 
-          <button type="submit" className="button-primary px-6 py-3 text-sm">
+          <button type="submit" className="button-primary px-5 py-2.5 text-sm">
             Filtrar
           </button>
 
-          <Link href="/admin/pedidos" className="button-secondary px-6 py-3 text-sm">
+          <Link href="/admin/pedidos" className="button-secondary px-5 py-2.5 text-sm">
             Limpiar
           </Link>
         </form>
       </section>
 
-      {detailOrder ? (
-        <OrderDetailPanel
-          order={detailOrder}
-          canMutate={pageData.canMutate}
-          returnTo={returnTo}
-        />
-      ) : params.detalle ? (
-        <div className="rounded-[1.5rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] p-4 text-sm leading-7 text-[var(--color-card-foreground)]">
-          No encontramos el pedido seleccionado. Puede haber sido filtrado o no
-          estar disponible.
+      <section
+        className={`grid min-h-0 flex-1 gap-3 ${
+          detailOrder || params.detalle
+            ? "xl:grid-cols-[minmax(360px,0.82fr)_minmax(480px,1.18fr)]"
+            : ""
+        }`}
+      >
+        <div className="min-h-0 overflow-y-auto pr-1">
+          <div className="grid gap-2">
+            {pageData.orders.length > 0 ? (
+              pageData.orders.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  detailHref={buildOrdersHref({
+                    ...baseParams,
+                    detalle: order.id,
+                  })}
+                  isSelected={params.detalle === order.id}
+                  canMutate={pageData.canMutate}
+                  returnTo={buildOrdersHref(baseParams)}
+                />
+              ))
+            ) : (
+              <EmptyState
+                title="No encontramos pedidos"
+                description="Ajusta los filtros o revisa pedidos archivados si quieres recuperar ordenes ocultas del listado principal."
+              />
+            )}
+          </div>
         </div>
-      ) : null}
 
-      <section className="grid gap-3">
-        {pageData.orders.length > 0 ? (
-          pageData.orders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              detailHref={buildOrdersHref({
-                ...baseParams,
-                detalle: order.id,
-              })}
-              isSelected={params.detalle === order.id}
+        {detailOrder ? (
+          <div className="min-h-0">
+            <OrderDetailPanel
+              order={detailOrder}
+              canMutate={pageData.canMutate}
+              returnTo={returnTo}
             />
-          ))
-        ) : (
-          <EmptyState
-            title="No encontramos pedidos"
-            description="Ajusta los filtros o revisa pedidos archivados si quieres recuperar ordenes ocultas del listado principal."
-          />
-        )}
+          </div>
+        ) : params.detalle ? (
+          <div className="min-h-0">
+            <div className="rounded-[1rem] border border-[color-mix(in_srgb,var(--color-warning)_42%,var(--color-border))] bg-[color-mix(in_srgb,var(--color-warning)_18%,var(--color-card)_82%)] px-4 py-3 text-sm leading-6 text-[var(--color-card-foreground)]">
+              No encontramos el pedido seleccionado. Puede haber sido filtrado o no
+              estar disponible.
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
