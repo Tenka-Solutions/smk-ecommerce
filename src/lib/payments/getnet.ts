@@ -21,6 +21,8 @@ export async function createGetnetCheckout(
   input: GetnetCreateCheckoutInput
 ): Promise<GetnetCheckoutResult> {
   if (!isGetnetConfigured()) {
+    // Local legacy fallback only. Production callers are blocked by the route
+    // guard and this extra check prevents accidental Getnet/mock redirects.
     if (process.env.NODE_ENV === "production") {
       throw new Error("Getnet legacy esta desactivado en produccion.");
     }

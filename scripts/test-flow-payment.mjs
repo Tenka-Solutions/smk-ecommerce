@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Legacy local-only probe for the old Next payment API. Production Flow tests
+// must target hubcafe-backend, not /api/payments/create.
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

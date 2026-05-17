@@ -86,6 +86,6 @@ Antes de pagos reales ejecutar la migracion:
 supabase/migrations/20260502090000_hubcafe_backend_idempotency.sql
 ```
 
-`src/app/api/payments/**` y el flujo de pagos dentro de Next quedan como legado local y se bloquean en produccion. El flujo operativo real para cPanel usa `hubcafe-backend/app.js`.
+`src/app/api/payments/**` y el flujo de pagos dentro de Next quedan como legado local y se bloquean en produccion con HTTP 410. No configurar Flow productivo, Getnet ni mock contra esas rutas. El flujo operativo real para cPanel usa `hubcafe-backend/app.js`.
 
 Ver instrucciones completas en `hubcafe-backend/README.md`.

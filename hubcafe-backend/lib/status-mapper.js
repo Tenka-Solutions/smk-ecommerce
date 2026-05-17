@@ -43,12 +43,6 @@ function mapFlowStatusToPaymentStatus(status) {
   return "pending";
 }
 
-function paymentStatusToReturnStatus(status) {
-  if (status === "paid") return "success";
-  if (status === "pending") return "pending";
-  return "failed";
-}
-
 function isValidOrderStatus(status) {
   return ALLOWED_SUPABASE_ORDER_STATUSES.includes(status);
 }
@@ -59,6 +53,5 @@ module.exports = {
   mapFlowStatusToPaymentStatus,
   mapOrderStatusToSupabase,
   mapPaymentStatusToSupabase,
-  paymentStatusToReturnStatus,
   isValidOrderStatus,
 };
