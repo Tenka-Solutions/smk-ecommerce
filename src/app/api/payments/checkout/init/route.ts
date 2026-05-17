@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from "@/modules/auth/server";
 import { checkoutPayloadSchema } from "@/modules/checkout/schema";
 import { createOrderDraft } from "@/modules/orders/service";
 import { buildPaymentDeps } from "@/modules/payments/factory";
+import { blockLegacyPaymentRouteInProduction } from "@/modules/payments/legacy-guard";
 import {
   OrderNotFoundError,
   UnsupportedProviderError,
@@ -18,6 +19,9 @@ const bodySchema = checkoutPayloadSchema.extend({
 });
 
 export async function POST(request: Request) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   try {
     const payload = await request.json();
     const parsed = bodySchema.safeParse(payload);

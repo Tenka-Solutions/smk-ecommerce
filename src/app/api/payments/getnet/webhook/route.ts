@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { blockLegacyPaymentRouteInProduction } from "@/modules/payments/legacy-guard";
 import { processPaymentResult } from "@/modules/payments/service";
 
 function parseWebhookPayload(raw: string) {
@@ -11,6 +12,9 @@ function parseWebhookPayload(raw: string) {
 }
 
 export async function POST(request: Request) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   const rawBody = await request.text();
   const payload = parseWebhookPayload(rawBody);
   const reference =

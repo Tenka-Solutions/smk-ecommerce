@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { buildPaymentDeps } from "@/modules/payments/factory";
+import { blockLegacyPaymentRouteInProduction } from "@/modules/payments/legacy-guard";
 import {
   OrderNotFoundError,
   UnsupportedProviderError,
@@ -15,6 +16,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   try {
     const json = await request.json();
     const parsed = bodySchema.safeParse(json);

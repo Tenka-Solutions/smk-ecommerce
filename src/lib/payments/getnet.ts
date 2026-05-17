@@ -21,6 +21,10 @@ export async function createGetnetCheckout(
   input: GetnetCreateCheckoutInput
 ): Promise<GetnetCheckoutResult> {
   if (!isGetnetConfigured()) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Getnet legacy esta desactivado en produccion.");
+    }
+
     return {
       provider: "mock",
       reference: input.reference,

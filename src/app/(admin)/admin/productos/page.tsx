@@ -63,6 +63,18 @@ const pageMessages: Record<string, { tone: "success" | "danger"; text: string }>
     },
   };
 
+const availabilityLabels: Record<AdminProductStatus, string> = {
+  available: "Disponible",
+  check_availability: "Consultar",
+  sold_out: "Agotado",
+};
+
+const publicationLabels: Record<AdminPublicationStatus, string> = {
+  draft: "Borrador",
+  published: "Publicado",
+  archived: "Archivado",
+};
+
 function toProductStatus(value?: string): AdminProductStatus | undefined {
   return ADMIN_PRODUCT_STATUSES.includes(value as AdminProductStatus)
     ? (value as AdminProductStatus)
@@ -267,6 +279,23 @@ export default async function AdminProductsPage({
       ? category.parentId === selectedParentCategory
       : true;
   });
+  const selectedParentName = selectedParentCategory
+    ? parentCategories.find((category) => category.id === selectedParentCategory)?.name
+    : null;
+  const selectedSubcategoryName = selectedSubcategory
+    ? pageData.categories.find((category) => category.id === selectedSubcategory)?.name
+    : null;
+  const selectedAvailability = toProductStatus(
+    params.estadoDisponibilidad ?? params.estadoProducto
+  );
+  const selectedPublication = toPublicationStatus(params.estadoPublicacion);
+  const activeFilterLabels = [
+    params.q ? `Busqueda: ${params.q}` : null,
+    selectedParentName ? `Grupo: ${selectedParentName}` : null,
+    selectedSubcategoryName ? `Familia: ${selectedSubcategoryName}` : null,
+    selectedAvailability ? `Disponibilidad: ${availabilityLabels[selectedAvailability]}` : null,
+    selectedPublication ? `Publicacion: ${publicationLabels[selectedPublication]}` : null,
+  ].filter((label): label is string => Boolean(label));
 
   return (
     <div className="grid gap-6">
@@ -348,6 +377,18 @@ export default async function AdminProductsPage({
       ) : null}
 
       <section className="panel-card rounded-[2rem] p-5 sm:p-6">
+        {activeFilterLabels.length > 0 ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {activeFilterLabels.map((label) => (
+              <span
+                key={label}
+                className="inline-flex min-h-9 items-center rounded-full border border-[color-mix(in_srgb,var(--color-primary)_36%,var(--color-border)_64%)] bg-[color-mix(in_srgb,var(--color-primary)_8%,var(--color-card)_92%)] px-4 text-xs font-semibold text-[var(--color-ink)]"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        ) : null}
         <form className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_220px_190px_190px_auto_auto] xl:items-end">
           <label className="grid gap-2 text-sm font-semibold">
             Buscar por nombre, SKU, marca comercial o EAN

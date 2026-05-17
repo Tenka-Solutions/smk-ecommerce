@@ -15,7 +15,8 @@ export default async function StorePage({
     q?: string;
     categoria?: string;
     filtro?: string;
-    sort?: "featured" | "price-asc" | "price-desc" | "name";
+    orden?: "featured" | "price-asc" | "price-desc" | "az" | "za";
+    sort?: "featured" | "price-asc" | "price-desc" | "name" | "name-desc";
   }>;
 }) {
   const params = await searchParams;
@@ -27,7 +28,7 @@ export default async function StorePage({
     query: params.q,
     category: params.categoria,
     coffeeSupplyFilter: showCoffeeSupplyFilters ? params.filtro : undefined,
-    sort: params.sort ?? "featured",
+    sort: params.orden ?? params.sort ?? "featured",
   });
 
   return (

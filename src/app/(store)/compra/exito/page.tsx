@@ -1,28 +1,71 @@
+import Link from "next/link";
 import { ClearCartOnMount } from "@/components/cart/ClearCartOnMount";
+import { getPublicOrderPaymentStatus } from "@/modules/payments/public-status";
+
+function buildPendingHref(orderNumber?: string) {
+  if (!orderNumber) {
+    return "/compra/pendiente";
+  }
+
+  const params = new URLSearchParams({ order: orderNumber });
+  return `/compra/pendiente?${params.toString()}`;
+}
 
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; reference?: string; mode?: string }>;
+  searchParams: Promise<{
+    order?: string;
+    reference?: string;
+    mode?: string;
+    status?: string;
+  }>;
 }) {
   const params = await searchParams;
+  const payment = await getPublicOrderPaymentStatus(params.order);
+  const isPaid = payment?.paymentStatus === "paid";
+  const isRejected =
+    payment?.paymentStatus === "rejected" ||
+    payment?.paymentStatus === "cancelled";
+  const title = isPaid
+    ? "Pago aprobado"
+    : isRejected
+      ? "El pago no fue aprobado"
+      : "Estamos verificando tu pago";
+  const description = isPaid
+    ? "Recibimos la confirmacion del pago desde Flow. Te contactaremos por correo con el seguimiento de la compra y la coordinacion del despacho."
+    : isRejected
+      ? "Flow informo que el pago fue rechazado o cancelado. Tu carrito no se limpia automaticamente para que puedas reintentar."
+      : "Aun no tenemos una confirmacion final desde el servidor. Si ya pagaste, espera unos minutos y vuelve a revisar el estado del pedido.";
 
   return (
     <div className="page-shell flex min-h-[70vh] items-center py-16">
-      <ClearCartOnMount />
+      {isPaid ? <ClearCartOnMount /> : null}
       <div className="panel-card mx-auto max-w-2xl rounded-[2rem] px-8 py-14 text-center">
-        <p className="section-kicker">Compra exitosa</p>
-        <h1 className="mt-4 text-4xl font-semibold">
-          Tu pedido fue registrado correctamente
-        </h1>
+        <p className="section-kicker">
+          {isPaid ? "Compra exitosa" : "Resultado de pago"}
+        </p>
+        <h1 className="mt-4 text-4xl font-semibold">{title}</h1>
         <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">
-          Orden {params.order ?? "generada"}
-          {params.reference ? ` · Ref. ${params.reference}` : ""}.
+          Orden {payment?.orderNumber ?? params.order ?? "por verificar"}
+          {params.reference ? ` - Ref. ${params.reference}` : ""}.
         </p>
         <p className="mt-3 text-sm leading-7 text-[var(--color-muted)]">
-          Te contactaremos por correo con el seguimiento de la compra y la
-          coordinacion del despacho.
+          {description}
         </p>
+        {!isPaid ? (
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              href={buildPendingHref(payment?.orderNumber ?? params.order)}
+              className="button-primary px-6 py-3"
+            >
+              Revisar estado
+            </Link>
+            <Link href="/checkout" className="button-secondary px-6 py-3">
+              Volver al checkout
+            </Link>
+          </div>
+        ) : null}
       </div>
     </div>
   );

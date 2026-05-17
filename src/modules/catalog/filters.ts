@@ -13,20 +13,21 @@ export type CoffeeSupplyFilterValue =
 
 export type CoffeeSupplyFilter = {
   label: string;
+  mark: string;
   value: CoffeeSupplyFilterValue;
   kind: "all" | "brand" | "family";
 };
 
 export const coffeeSupplyFilters = [
-  { label: "Todos", value: "all", kind: "all" },
-  { label: "Mokador", value: "mokador", kind: "brand" },
-  { label: "Schoppe", value: "schoppe", kind: "brand" },
-  { label: "Laqtia", value: "laqtia", kind: "brand" },
-  { label: "Cafés", value: "cafes", kind: "family" },
-  { label: "Leches", value: "leches", kind: "family" },
-  { label: "Capuchinos", value: "capuchinos", kind: "family" },
-  { label: "Chocolates", value: "chocolates", kind: "family" },
-  { label: "Chai", value: "chai", kind: "family" },
+  { label: "Todos", mark: "T", value: "all", kind: "all" },
+  { label: "Mokador", mark: "M", value: "mokador", kind: "brand" },
+  { label: "Schoppe", mark: "S", value: "schoppe", kind: "brand" },
+  { label: "Laqtia", mark: "L", value: "laqtia", kind: "brand" },
+  { label: "Cafés", mark: "CA", value: "cafes", kind: "family" },
+  { label: "Leches", mark: "LE", value: "leches", kind: "family" },
+  { label: "Capuchinos", mark: "CP", value: "capuchinos", kind: "family" },
+  { label: "Chocolates", mark: "CH", value: "chocolates", kind: "family" },
+  { label: "Chai", mark: "AI", value: "chai", kind: "family" },
 ] as const satisfies readonly CoffeeSupplyFilter[];
 
 const coffeeSupplyRootSlugs = new Set([

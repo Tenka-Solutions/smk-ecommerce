@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getFlowPaymentStatus } from "@/modules/payments/providers/flow";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabasePaymentRepository } from "@/modules/payments/infra/supabase-payment-repository";
+import { blockLegacyPaymentRouteInProduction } from "@/modules/payments/legacy-guard";
 import type { PaymentStatus } from "@/modules/payments/domain/payment";
 
 function mapFlowStatus(code: number): PaymentStatus {
@@ -11,6 +12,9 @@ function mapFlowStatus(code: number): PaymentStatus {
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   let token: string | null = null;
 
   try {

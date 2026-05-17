@@ -5,7 +5,11 @@ const REQUIRED_GROUPS = [
   },
   {
     name: "Flow",
-    keys: ["FLOW_API_KEY", "FLOW_SECRET_KEY"],
+    keys: ["FLOW_API_KEY", "FLOW_SECRET_KEY", "FLOW_CONFIRMATION_URL", "FLOW_RETURN_URL"],
+  },
+  {
+    name: "Frontend",
+    keys: ["FRONTEND_SITE_URL"],
   },
   {
     name: "SMTP",

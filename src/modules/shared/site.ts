@@ -39,7 +39,6 @@ export const publicNavigation = [
   { href: "/categorias/cafe-insumos", label: "Café e insumos" },
   { href: "/categorias/vasos-accesorios", label: "Vasos y accesorios" },
   { href: "/cotizar", label: "Cotizar" },
-  { href: "/nosotros", label: "Nosotros" },
   { href: "/contacto", label: "Contacto" },
 ];
 

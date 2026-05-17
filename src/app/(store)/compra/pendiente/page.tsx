@@ -7,7 +7,7 @@ function buildResultHref(path: string, orderNumber: string) {
   return `${path}?${params.toString()}`;
 }
 
-export default async function RejectedPage({
+export default async function PendingPaymentPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -23,25 +23,25 @@ export default async function RejectedPage({
     redirect(buildResultHref("/compra/exito", payment.orderNumber));
   }
 
-  if (payment?.paymentStatus === "pending") {
-    redirect(buildResultHref("/compra/pendiente", payment.orderNumber));
+  if (
+    payment?.paymentStatus === "rejected" ||
+    payment?.paymentStatus === "cancelled"
+  ) {
+    redirect(buildResultHref("/compra/rechazada", payment.orderNumber));
   }
 
-  const wasCancelled =
-    params.status === "cancelled" || payment?.paymentStatus === "cancelled";
-  const title = wasCancelled
-    ? "El pago fue cancelado"
-    : "No fue posible completar el pago";
-  const description = payment
-    ? "Flow informo que el pago fue rechazado o cancelado. Tu carrito se mantuvo intacto para que puedas reintentar o revisar la informacion antes de volver al checkout."
-    : "No pudimos verificar una confirmacion aprobada del pago. Tu carrito se mantuvo intacto para que puedas reintentar o contactar al equipo comercial.";
+  const canVerifyOrder = Boolean(params.order && payment);
+  const title = canVerifyOrder
+    ? "Pago pendiente de confirmacion"
+    : "No pudimos verificar el pago";
+  const description = canVerifyOrder
+    ? "El pedido existe, pero todavia no recibimos confirmacion final de Flow. Puedes volver a revisar en unos minutos."
+    : "No encontramos una confirmacion confiable para este retorno. Si el cargo aparece en tu banco, contacta al equipo comercial con el numero de pedido.";
 
   return (
     <div className="page-shell flex min-h-[70vh] items-center py-16">
       <div className="panel-card mx-auto max-w-2xl rounded-[2rem] px-8 py-14 text-center">
-        <p className="section-kicker">
-          {wasCancelled ? "Pago cancelado" : "Pago rechazado"}
-        </p>
+        <p className="section-kicker">Pago en revision</p>
         <h1 className="mt-4 text-4xl font-semibold">{title}</h1>
         {params.order ? (
           <p className="mt-4 text-sm leading-7 text-[var(--color-muted)]">
@@ -52,8 +52,15 @@ export default async function RejectedPage({
           {description}
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/checkout" className="button-primary px-6 py-3">
-            Reintentar pago
+          <Link
+            href={
+              params.order
+                ? buildResultHref("/compra/pendiente", params.order)
+                : "/compra/pendiente"
+            }
+            className="button-primary px-6 py-3"
+          >
+            Revisar nuevamente
           </Link>
           <Link href="/contacto" className="button-secondary px-6 py-3">
             Contacto comercial

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { blockLegacyPaymentRouteInProduction } from "@/modules/payments/legacy-guard";
 import { processPaymentResult } from "@/modules/payments/service";
 
 export async function GET(request: NextRequest) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   const status = request.nextUrl.searchParams.get("status");
   const reference = request.nextUrl.searchParams.get("reference");
   const orderNumberFromQuery = request.nextUrl.searchParams.get("order");

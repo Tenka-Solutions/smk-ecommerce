@@ -3,7 +3,12 @@ const crypto = require("node:crypto");
 const DEFAULT_FLOW_BASE_URL = "https://www.flow.cl/api";
 
 function isFlowConfigured() {
-  return Boolean(process.env.FLOW_API_KEY && process.env.FLOW_SECRET_KEY);
+  return Boolean(
+    process.env.FLOW_API_KEY &&
+      process.env.FLOW_SECRET_KEY &&
+      process.env.FLOW_CONFIRMATION_URL &&
+      process.env.FLOW_RETURN_URL
+  );
 }
 
 function getFlowBaseUrl() {

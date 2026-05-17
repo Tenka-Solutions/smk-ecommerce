@@ -7,6 +7,7 @@
     "start:cotizacion": "node server/cotizacion-server.js",
     "server:cpanel": "node server/cotizacion-server.js",
     "build": "next build",
+    "check": "npm run -s typecheck",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"

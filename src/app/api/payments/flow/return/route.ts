@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { blockLegacyPaymentRouteInProduction } from "@/modules/payments/legacy-guard";
 import { getFlowPaymentStatus } from "@/modules/payments/providers/flow";
 
 export async function POST(request: NextRequest) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   const form = await request.formData();
   const token = form.get("token");
   return handle(typeof token === "string" ? token : null);
 }
 
 export async function GET(request: NextRequest) {
+  const blocked = blockLegacyPaymentRouteInProduction();
+  if (blocked) return blocked;
+
   const token = request.nextUrl.searchParams.get("token");
   return handle(token);
 }

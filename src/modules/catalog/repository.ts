@@ -185,7 +185,12 @@ function applyFilters(
       result.sort((left, right) => right.priceClpTaxInc - left.priceClpTaxInc);
       break;
     case "name":
+    case "az":
       result.sort((left, right) => left.name.localeCompare(right.name, "es"));
+      break;
+    case "name-desc":
+    case "za":
+      result.sort((left, right) => right.name.localeCompare(left.name, "es"));
       break;
     default:
       result.sort((left, right) => {

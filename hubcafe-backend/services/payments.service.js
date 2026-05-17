@@ -1,5 +1,5 @@
 const { getFlowPaymentStatus } = require("../lib/flow-client");
-const { mapFlowStatusToPaymentStatus, paymentStatusToReturnStatus } = require("../lib/status-mapper");
+const { mapFlowStatusToPaymentStatus } = require("../lib/status-mapper");
 const ordersRepository = require("../repositories/orders.repository");
 const paymentsRepository = require("../repositories/payments.repository");
 const { discountStockFromSupabase } = require("./stock.service");
@@ -19,6 +19,13 @@ function paymentSummaryFromFlow(flowStatus, token) {
     requestDate: flowStatus.requestDate || "",
     paymentData: flowStatus.paymentData || null,
   };
+}
+
+function getFrontendSiteUrl() {
+  return (process.env.FRONTEND_SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://hubcafe.cl").replace(
+    /\/$/,
+    ""
+  );
 }
 
 async function processFlowToken(token) {
@@ -117,11 +124,30 @@ async function processFlowToken(token) {
 }
 
 function buildFlowReturnUrl(result) {
-  const baseUrl = process.env.FLOW_RETURN_URL || "https://hubcafe.cl/pago-confirmado";
-  const url = new URL(baseUrl);
-  url.searchParams.set("status", paymentStatusToReturnStatus(result.paymentStatus));
+  const hasVerifiedOrder = Boolean(result.found && result.order && result.order.order_number);
+  let path = "/compra/pendiente";
+  let returnStatus = "pending";
+
+  if (hasVerifiedOrder && result.paymentStatus === "paid") {
+    path = "/compra/exito";
+    returnStatus = "success";
+  } else if (hasVerifiedOrder && result.paymentStatus === "rejected") {
+    path = "/compra/rechazada";
+    returnStatus = "failed";
+  } else if (hasVerifiedOrder && result.paymentStatus === "cancelled") {
+    path = "/compra/rechazada";
+    returnStatus = "cancelled";
+  } else if (!hasVerifiedOrder) {
+    returnStatus = "unverified";
+  }
+
+  const url = new URL(path, `${getFrontendSiteUrl()}/`);
+  url.searchParams.set("status", returnStatus);
   if (result.order && result.order.order_number) {
     url.searchParams.set("order", result.order.order_number);
+  }
+  if (result.reason || !hasVerifiedOrder) {
+    url.searchParams.set("reason", result.reason || "unverified");
   }
   return url.toString();
 }

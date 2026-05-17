@@ -42,7 +42,7 @@ npm run dev
 - El checkout público usa `NEXT_PUBLIC_API_BASE_URL`.
 - En producción debe apuntar a `https://smkvending.cl/hubcafe-api`.
 - El backend real de pedidos, Flow, stock y correos está en `hubcafe-backend/`.
-- `PAYMENTS_MODE=mock` pertenece solo al flujo legacy de Next API y no se usa para el checkout real de Hub Café.
+- `PAYMENTS_MODE=mock` pertenece solo al flujo legacy de Next API, queda bloqueado en produccion y no se usa para el checkout real de Hub Café.
 - `EMAIL_MODE=log` y `EMAIL_MODE=resend` pertenecen al flujo legacy de Next. El backend real usa SMTP desde `hubcafe-backend/.env`.
 
 ## Estructura
@@ -74,7 +74,11 @@ NEXT_PUBLIC_API_BASE_URL=https://smkvending.cl/hubcafe-api
 URLs Flow:
 
 - Confirmation URL: `https://smkvending.cl/hubcafe-api/payments/flow/webhook`
-- Return URL: `https://hubcafe.cl/pago-confirmado`
+- Return URL: `https://smkvending.cl/hubcafe-api/payments/flow/return`
+
+El retorno de Flow vuelve primero al backend para validar el token contra Flow y
+actualizar Supabase. Despues redirige al cliente a `/compra/exito`,
+`/compra/rechazada` o `/compra/pendiente` en `https://hubcafe.cl`.
 
 Antes de pagos reales ejecutar la migracion:
 
@@ -82,6 +86,6 @@ Antes de pagos reales ejecutar la migracion:
 supabase/migrations/20260502090000_hubcafe_backend_idempotency.sql
 ```
 
-`src/app/api/payments/**` y el flujo de pagos dentro de Next quedan como legado/respaldo. El flujo operativo real para cPanel usa `hubcafe-backend/app.js`.
+`src/app/api/payments/**` y el flujo de pagos dentro de Next quedan como legado local y se bloquean en produccion. El flujo operativo real para cPanel usa `hubcafe-backend/app.js`.
 
 Ver instrucciones completas en `hubcafe-backend/README.md`.

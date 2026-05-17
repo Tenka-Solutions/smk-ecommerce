@@ -52,6 +52,13 @@ export interface CatalogFilters {
   category?: CatalogCategorySlug;
   coffeeSupplyFilter?: string;
   featuredOnly?: boolean;
-  sort?: "featured" | "price-asc" | "price-desc" | "name";
+  sort?:
+    | "featured"
+    | "price-asc"
+    | "price-desc"
+    | "name"
+    | "name-desc"
+    | "az"
+    | "za";
   limit?: number;
 }

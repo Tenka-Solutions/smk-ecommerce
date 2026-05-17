@@ -26,8 +26,10 @@ export function CatalogFilters({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  function updateParam(name: string, value: string) {
+  function updateParam(name: string, value: string, removeNames: string[] = []) {
     const params = new URLSearchParams(searchParams.toString());
+
+    removeNames.forEach((paramName) => params.delete(paramName));
 
     if (value) {
       params.set(name, value);
@@ -36,15 +38,19 @@ export function CatalogFilters({
     }
 
     startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
+      router.push(`${pathname}${params.size ? `?${params.toString()}` : ""}`);
     });
   }
+
+  const legacySort = searchParams.get("sort");
+  const activeOrder =
+    searchParams.get("orden") ?? (legacySort === "name" ? "az" : legacySort) ?? "featured";
 
   return (
     <div className="surface-card grid gap-4 rounded-[1.8rem] p-4 md:grid-cols-[1.3fr_0.7fr_0.7fr]">
       <input
         defaultValue={searchParams.get("q") ?? ""}
-        placeholder="Buscar producto, categoría o atributo"
+        placeholder="Buscar por producto, marca, SKU o descripcion"
         className="form-input"
         onChange={(event) => updateParam("q", event.target.value)}
       />
@@ -61,15 +67,16 @@ export function CatalogFilters({
         ))}
       </select>
       <select
-        defaultValue={searchParams.get("sort") ?? "featured"}
+        defaultValue={activeOrder}
         className="form-input"
         disabled={isPending}
-        onChange={(event) => updateParam("sort", event.target.value)}
+        onChange={(event) => updateParam("orden", event.target.value, ["sort"])}
       >
-        <option value="featured">Destacados</option>
+        <option value="featured">Relevancia</option>
         <option value="price-asc">Precio menor a mayor</option>
         <option value="price-desc">Precio mayor a menor</option>
-        <option value="name">Nombre</option>
+        <option value="az">A-Z</option>
+        <option value="za">Z-A</option>
       </select>
     </div>
   );

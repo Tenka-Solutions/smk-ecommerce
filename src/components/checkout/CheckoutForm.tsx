@@ -127,6 +127,11 @@ export function CheckoutForm({
     }
 
     startTransition(async () => {
+      if (!apiBaseUrl) {
+        toast.error("Checkout no configurado. Intenta nuevamente mas tarde.");
+        return;
+      }
+
       const response = await fetch(`${apiBaseUrl}/orders/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

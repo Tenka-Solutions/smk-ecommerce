@@ -54,6 +54,7 @@ export interface AdminCatalogProduct {
   categoryExists: boolean;
   categoryParentId: string | null;
   categoryParentName: string | null;
+  categoryParentSlug: string | null;
   categoryIsActive: boolean;
   categoryIsVisible: boolean;
   publicVisibility: ReturnType<typeof getAdminProductVisibilityInfo>;
@@ -213,6 +214,7 @@ function mapProduct(
     categoryExists: Boolean(category),
     categoryParentId: category?.parentId ?? null,
     categoryParentName: parentCategory?.name ?? null,
+    categoryParentSlug: parentCategory?.slug ?? null,
     categoryIsActive: category?.isActive ?? false,
     categoryIsVisible: category?.isVisible ?? false,
     name: String(row.name ?? ""),
@@ -319,16 +321,27 @@ function applyFilters(
   }
 
   if (filters.parentCategoryId?.trim()) {
+    const parentCategory = normalizeText(filters.parentCategoryId);
     filtered = filtered.filter(
       (product) =>
-        product.categoryId === filters.parentCategoryId ||
-        product.categoryParentId === filters.parentCategoryId
+        normalizeText(product.categoryId) === parentCategory ||
+        normalizeText(product.categorySlug) === parentCategory ||
+        normalizeText(product.categoryParentId ?? "") === parentCategory ||
+        normalizeText(product.categoryParentName ?? "") === parentCategory ||
+        normalizeText(product.categoryParentSlug ?? "") === parentCategory
     );
   }
 
   if (filters.categoryId?.trim()) {
+    const category = normalizeText(filters.categoryId);
     filtered = filtered.filter(
-      (product) => product.categoryId === filters.categoryId
+      (product) =>
+        normalizeText(product.categoryId) === category ||
+        normalizeText(product.categorySlug) === category ||
+        normalizeText(product.categoryName) === category ||
+        normalizeText(product.categoryParentId ?? "") === category ||
+        normalizeText(product.categoryParentSlug ?? "") === category ||
+        normalizeText(product.categoryParentName ?? "") === category
     );
   }
 

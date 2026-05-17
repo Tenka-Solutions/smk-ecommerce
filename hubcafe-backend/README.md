@@ -23,6 +23,7 @@ https://smkvending.cl/hubcafe-api/orders/:id/status
 https://smkvending.cl/hubcafe-api/payments/flow/webhook
 https://smkvending.cl/hubcafe-api/payments/flow/confirm
 https://smkvending.cl/hubcafe-api/payments/flow/return
+https://smkvending.cl/hubcafe-api/payments/status?order=SMK-YYYYMMDD-XXXXXXXX
 https://smkvending.cl/hubcafe-api/quotes/send
 ```
 
@@ -64,6 +65,7 @@ ALLOWED_ORIGIN=https://hubcafe.cl
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_API_KEY=
+FRONTEND_SITE_URL=https://hubcafe.cl
 
 SMTP_HOST=
 SMTP_PORT=465
@@ -77,7 +79,7 @@ FLOW_API_KEY=
 FLOW_SECRET_KEY=
 FLOW_BASE_URL=https://www.flow.cl/api
 FLOW_CONFIRMATION_URL=https://smkvending.cl/hubcafe-api/payments/flow/webhook
-FLOW_RETURN_URL=https://hubcafe.cl/pago-confirmado
+FLOW_RETURN_URL=https://smkvending.cl/hubcafe-api/payments/flow/return
 
 ADMIN_PANEL_URL=https://hubcafe.cl/admin/pedidos
 ```
@@ -95,10 +97,10 @@ https://smkvending.cl/hubcafe-api/payments/flow/webhook
 Return URL:
 
 ```txt
-https://hubcafe.cl/pago-confirmado
+https://smkvending.cl/hubcafe-api/payments/flow/return
 ```
 
-El frontend nunca marca pagos como confirmados. El backend consulta Flow con el token y actualiza Supabase.
+El frontend nunca marca pagos como confirmados. Flow retorna al backend, el backend consulta Flow con el token, actualiza Supabase y recien despues redirige al cliente a `FRONTEND_SITE_URL` usando `/compra/exito`, `/compra/rechazada` o `/compra/pendiente`.
 
 ## cPanel
 
@@ -204,6 +206,7 @@ POST /quotes/send
 POST /payments/flow/webhook
 POST /payments/flow/confirm
 GET  /payments/flow/return
+GET  /payments/status?order=SMK-YYYYMMDD-XXXXXXXX
 GET  /health
 ```
 

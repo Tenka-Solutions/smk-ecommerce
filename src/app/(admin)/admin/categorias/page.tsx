@@ -118,7 +118,7 @@ function CategoryRow({
           </span>
           {isParent ? (
             <span className="rounded-full bg-[var(--color-surface-strong)] px-3 py-1">
-              En subcategorias: {category.descendantProductCount}
+              En familias: {category.descendantProductCount}
             </span>
           ) : null}
           <span className="rounded-full bg-[var(--color-surface-strong)] px-3 py-1">
@@ -175,7 +175,7 @@ function CategoryRow({
       {hasChildren || category.productCount > 0 ? (
         <p className="md:col-span-2 text-xs leading-5 text-[var(--color-muted-foreground)]">
           Para eliminar definitivamente, primero debe quedar sin productos
-          directos y sin subcategorias. Mientras tanto puedes desactivarla.
+          directos y sin familias. Mientras tanto puedes desactivarla.
         </p>
       ) : null}
     </article>
@@ -250,7 +250,7 @@ export default async function AdminCategoriesPage({
           </div>
           <div className="rounded-[1.25rem] bg-[var(--color-surface-strong)] p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">
-              Padres
+              Grupos principales
             </p>
             <p className="mt-2 text-2xl font-semibold">{parentCategories.length}</p>
           </div>
